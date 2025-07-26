@@ -1,6 +1,6 @@
 // public/js/api.js
 
-const API_BASE = "http://localhost:5000/api"; // Update this if your backend runs elsewhere
+const API_BASE = "https://hostel-outpass-system.onrender.com"; // Update this if your backend runs elsewhere
 
 async function sendRequest(endpoint, method = "GET", data = null, token = null) {
   const config = {

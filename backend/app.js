@@ -19,7 +19,24 @@ const app = express();                     // creates the  core express applicat
 connectDB();
 
 // Middlewares
-app.use(cors());     // allows cross-origin requests, enabling frontend to access backend APIs
+const allowedOrigins = [
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'https://hostel-outpass-system.vercel.app'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
 app.use(express.json());    //parse incomming request with json payloads, so that we can access req.body in our routes.
 app.use(express.urlencoded({ extended: true }));   // parses incomming requests with  form submissions.
 
