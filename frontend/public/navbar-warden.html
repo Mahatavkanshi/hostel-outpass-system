@@ -1,0 +1,28 @@
+<!-- public/navbar-warden.html -->
+<nav style="background: #f0f0f0; padding: 10px;">
+  <a href="warden-dashboard.html">Warden Dashboard</a> |
+  <a href="#" onclick="logout()">Logout</a>
+<div class="bg-white shadow p-4 flex justify-between items-center">
+  <h1 class="text-2xl font-bold text-gray-800">Warden Dashboard</h1>
+  <button
+    onclick="logout()"
+    class="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded"
+  >
+    Logout
+  </button>
+</div>
+
+
+
+</nav>
+ 
+
+
+
+<script>
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "index.html";
+  }
+</script>

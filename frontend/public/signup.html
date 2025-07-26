@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Signup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+  <div id="navbar"></div>
+  <script>
+    fetch("navbar-guest.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar").innerHTML = data;
+      });
+  </script>
+
+  <div class="max-w-md mx-auto mt-12 bg-white p-8 rounded shadow-md">
+    <h2 class="text-2xl font-bold mb-6 text-center">Student Signup</h2>
+
+    <form id="signupForm" class="space-y-4">
+      <input type="text" id="name" placeholder="Full Name" required class="w-full border border-gray-300 p-2 rounded" />
+      <input type="text" id="collegeId" placeholder="College ID" required class="w-full border border-gray-300 p-2 rounded" />
+      <input type="email" id="email" placeholder="Email" required class="w-full border border-gray-300 p-2 rounded" />
+      <input type="password" id="password" placeholder="Password" required class="w-full border border-gray-300 p-2 rounded" />
+      <input type="hidden" id="role" value="student" />
+
+      <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Signup</button>
+    </form>
+
+    <p id="msg" class="text-red-500 mt-2 text-center"></p>
+
+    <p class="mt-4 text-center">Already have an account? <a href="index.html" class="text-blue-600 hover:underline">Login here</a></p>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>
+
+
+
+
+

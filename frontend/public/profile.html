@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Complete Profile | Smart Outpass System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-100 via-white to-blue-50 min-h-screen font-sans flex items-center justify-center p-4">
+
+  <div class="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-2xl border border-blue-200">
+    <h2 class="text-3xl font-bold text-blue-700 text-center mb-6">Complete Your Profile</h2>
+
+    <!-- 🔵 Profile Completion Meter -->
+    <div class="mb-6">
+      <label class="block text-gray-600 mb-2 font-medium">Profile Completion</label>
+      <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+        <div id="progressBar" class="h-4 text-center text-white text-xs leading-4 transition-all duration-500 ease-out">0%</div>
+      </div>
+    </div>
+
+    <!-- 🔶 Profile Form -->
+    <form id="profileForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <input type="text" id="contactNumber" placeholder="Contact Number" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"/>
+      <input type="text" id="parentContact" placeholder="Parent Contact Number" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"/>
+      <input type="text" id="address" placeholder="Address" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none col-span-1 sm:col-span-2"/>
+      <input type="text" id="gender" placeholder="Gender" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"/>
+      <input type="text" id="roomNumber" placeholder="Room Number" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"/>
+      <input type="text" id="emergencyContact" placeholder="Emergency Contact" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none col-span-1 sm:col-span-2"/>
+
+      <button type="submit" class="col-span-1 sm:col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-md font-medium transition duration-300">Update Profile</button>
+    </form>
+
+    <p id="msg" class="mt-4 text-center text-red-500 font-medium"></p>
+  </div>
+
+  <!-- 🔃 Script Section -->
+  <script src="../public/js/api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("You are not logged in");
+      window.location.href = "index.html";
+    }
+
+    const form = document.getElementById("profileForm");
+    const msg = document.getElementById("msg");
+    const progressBar = document.getElementById("progressBar");
+
+    async function fetchProfile() {
+      try {
+        const res = await sendRequest("/profile", "GET", null, token);
+        if (res.profile) {
+          const p = res.profile;
+          document.getElementById("contactNumber").value = p.contactNumber || '';
+          document.getElementById("parentContact").value = p.parentContact || '';
+          document.getElementById("address").value = p.address || '';
+          document.getElementById("gender").value = p.gender || '';
+          document.getElementById("roomNumber").value = p.roomNumber || '';
+          document.getElementById("emergencyContact").value = p.emergencyContact || '';
+        }
+        updateProgressBar();
+      } catch (err) {
+        console.error("Failed to fetch profile", err);
+        msg.textContent = "Could not load profile.";
+      }
+    }
+
+    function updateProgressBar() {
+      const fields = [
+        document.getElementById("contactNumber").value,
+        document.getElementById("parentContact").value,
+        document.getElementById("address").value,
+        document.getElementById("gender").value,
+        document.getElementById("roomNumber").value,
+        document.getElementById("emergencyContact").value
+      ];
+
+      const filled = fields.filter(f => f.trim() !== "").length;
+      const percent = Math.floor((filled / fields.length) * 100);
+
+      progressBar.style.width = percent + "%";
+      progressBar.textContent = percent + "%";
+
+      progressBar.className =
+        `h-4 text-center text-white text-xs leading-4 transition-all duration-500 ease-out ${
+          percent < 50
+            ? "bg-red-500"
+            : percent < 80
+            ? "bg-yellow-500"
+            : "bg-green-500"
+        }`;
+    }
+
+    form.addEventListener("input", updateProgressBar);
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const profileData = {
+        contactNumber: document.getElementById("contactNumber").value.trim(),
+        parentContact: document.getElementById("parentContact").value.trim(),
+        address: document.getElementById("address").value.trim(),
+        gender: document.getElementById("gender").value.trim(),
+        roomNumber: document.getElementById("roomNumber").value.trim(),
+        emergencyContact: document.getElementById("emergencyContact").value.trim()
+      };
+
+      try {
+        const res = await sendRequest("/profile", "PUT", profileData, token);
+        msg.textContent = res.message || "Profile updated successfully!";
+        msg.classList.remove("text-red-500");
+        msg.classList.add("text-green-600");
+        updateProgressBar();
+      } catch (err) {
+        console.error("Profile update failed", err);
+        msg.textContent = "Update failed.";
+        msg.classList.remove("text-green-600");
+        msg.classList.add("text-red-500");
+      }
+    });
+
+    fetchProfile();
+  </script>
+</body>
+</html>
+
+
+
+
+

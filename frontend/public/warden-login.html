@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Warden Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center font-sans">
+
+  <!-- Login Form Card -->
+  <div class="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">Warden Login</h2>
+
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <input
+          type="email"
+          id="email"
+          placeholder="Email"
+          required
+          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <input
+          type="password"
+          id="password"
+          placeholder="Password"
+          required
+          class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <button
+        type="submit"
+        class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
+      >
+        Login
+      </button>
+    </form>
+
+    <p id="msg" class="mt-4 text-center text-red-500 font-medium"></p>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../public/js/api.js"></script>
+  <script>
+    const form = document.getElementById("loginForm");
+    const msg = document.getElementById("msg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        const res = await sendRequest("/auth/login", "POST", { email, password });
+
+        if (res.token && res.user) {
+          if (res.user.role !== "warden") {
+            msg.textContent = "Access denied: Not a warden.";
+            return;
+          }
+
+          localStorage.setItem("token", res.token);
+          localStorage.setItem("user", JSON.stringify(res.user));
+          window.location.href = "warden-dashboard.html";
+        } else {
+          msg.textContent = res.message || "Login failed.";
+        }
+      } catch (err) {
+        console.error("Login error:", err);
+        msg.textContent = "Something went wrong.";
+      }
+    });
+  </script>
+</body>
+</html>
+
+
+
+

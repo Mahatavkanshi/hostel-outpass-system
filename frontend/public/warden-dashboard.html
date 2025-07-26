@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Warden Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+  <!-- ✅ Navbar -->
+  <div id="navbar"></div>
+  <script>
+    fetch("navbar-warden.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar").innerHTML = data;
+      });
+  </script>
+
+  <!-- ✅ Dashboard Content -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h2 class="text-3xl font-bold text-gray-800 mb-4">Welcome, Warden</h2>
+
+    <!-- ✅ Pending Outpass Requests -->
+    <h3 class="text-xl font-semibold text-gray-600 mb-6">Pending Outpass Requests</h3>
+    <div class="overflow-auto">
+      <table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+        <thead class="bg-blue-600 text-white">
+          <tr>
+            <th class="px-4 py-2 text-left">Student Name</th>
+            <th class="px-4 py-2 text-left">College ID</th>
+            <th class="px-4 py-2 text-left">Email</th>
+            <th class="px-4 py-2 text-left">Reason</th>
+            <th class="px-4 py-2 text-left">Place</th>
+            <th class="px-4 py-2 text-left">Date</th>
+            <th class="px-4 py-2 text-left">Time Out</th>
+            <th class="px-4 py-2 text-left">Time In</th>
+            <th class="px-4 py-2 text-left">Emergency Contact</th>
+            <th class="px-4 py-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="requestsTableBody" class="text-gray-800">
+          <!-- Filled by JS -->
+        </tbody>
+      </table>
+    </div>
+    <p id="msg" class="mt-4 text-center text-red-600 font-semibold"></p>
+
+    <!-- ✅ Pending Student Verifications -->
+    <h3 class="text-xl font-semibold text-gray-600 mt-10 mb-4">Pending Student Verifications</h3>
+    <div class="overflow-auto">
+      <table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+        <thead class="bg-green-600 text-white">
+          <tr>
+            <th class="px-4 py-2 text-left">Name</th>
+            <th class="px-4 py-2 text-left">College ID</th>
+            <th class="px-4 py-2 text-left">Email</th>
+            <th class="px-4 py-2 text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="verificationTableBody" class="text-gray-800">
+          <!-- Filled by JS -->
+        </tbody>
+      </table>
+    </div>
+    <p id="verifyMsg" class="mt-4 text-center text-red-600 font-semibold"></p>
+  </div>
+
+  <!-- ✅ Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/wardenDashboard.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+

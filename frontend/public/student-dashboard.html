@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" class="transition duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Dashboard</title>
+
+  <!-- ✅ Persist Dark Mode Early -->
+  <script>
+    if (localStorage.getItem("theme") === "dark") {
+      document.documentElement.classList.add("dark");
+    }
+  </script>
+
+  <!-- ✅ Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    };
+  </script>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen font-sans">
+
+  <!-- ✅ Load Navbar -->
+  <div id="navbar"></div>
+  <script>
+    fetch("navbar-student.html")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar").innerHTML = data;
+
+        const toggle = document.getElementById("darkToggle");
+        const root = document.documentElement;
+
+        if (localStorage.getItem("theme") === "dark") {
+          root.classList.add("dark");
+          toggle && (toggle.checked = true);
+        }
+
+        toggle?.addEventListener("change", () => {
+          if (toggle.checked) {
+            root.classList.add("dark");
+            localStorage.setItem("theme", "dark");
+          } else {
+            root.classList.remove("dark");
+            localStorage.setItem("theme", "light");
+          }
+        });
+
+        window.logout = function () {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          window.location.href = "index.html";
+        };
+      });
+  </script>
+
+  <!-- ✅ Profile Alert -->
+  <div id="profileAlert" class="hidden max-w-4xl mx-auto mt-6 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 dark:bg-yellow-200 dark:text-yellow-900 rounded shadow">
+    <p class="font-semibold">
+      ⚠️ Incomplete Profile! <a href="profile.html" class="underline text-blue-700 hover:text-blue-900">Click here to complete it</a> to access all features.
+    </p>
+  </div>
+
+  <!-- ✅ Dashboard Content -->
+  <div class="max-w-5xl mx-auto mt-8 p-6 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+    <h2 class="text-2xl font-bold mb-4">
+      Welcome, <span id="studentName" class="text-blue-600 dark:text-blue-400">Student</span>
+    </h2>
+
+    <h3 class="text-xl font-semibold mt-6 mb-4">Your Outpass Requests</h3>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
+        <thead>
+          <tr class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-white">
+            <th class="py-2 px-4 border-b">Date</th>
+            <th class="py-2 px-4 border-b">Time Out</th>
+            <th class="py-2 px-4 border-b">Time In</th>
+            <th class="py-2 px-4 border-b">Place</th>
+            <th class="py-2 px-4 border-b">Reason</th>
+            <th class="py-2 px-4 border-b">Status</th>
+            <th class="py-2 px-4 border-b">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="outpassTableBody" class="text-gray-800 dark:text-gray-100"></tbody>
+      </table>
+    </div>
+
+    <p id="msg" class="text-center text-red-600 mt-4 dark:text-red-400"></p>
+
+    <!-- ✅ Location Sharing Alert (Only if Late) -->
+    <div id="lateNotice" class="hidden mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+      <p class="font-semibold mb-2">⚠️ You are late to return!</p>
+      <button onclick="sendLocationFromLateNotice()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+        Send My Location to Warden
+      </button>
+    </div>
+  </div>
+
+  <!-- ✅ Load Other Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/studentDashboard.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

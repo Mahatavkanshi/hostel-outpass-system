@@ -1,0 +1,26 @@
+<!-- public/navbar-student.html -->
+<nav class="flex items-center justify-between px-6 py-4 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white">
+  <div class="space-x-4">
+    <a href="profile.html" class="hover:underline">Profile</a>
+    <a href="student-dashboard.html" class="hover:underline">Dashboard</a>
+    <a href="outpass.html" class="hover:underline">Apply Outpass</a>
+    <a href="#" onclick="logout()" class="hover:underline text-red-500">Logout</a>
+  </div>
+
+  <!-- 🌙 Toggle -->
+  <div class="flex items-center space-x-2">
+    <label for="darkToggle" class="text-sm">Dark Mode</label>
+    <input type="checkbox" id="darkToggle" class="w-4 h-4 cursor-pointer">
+  </div>
+</nav>
+
+<script>
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "index.html";
+  }
+</script>
+
+
+
