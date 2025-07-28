@@ -54,6 +54,7 @@ exports.login = async (req, res) => {
     console.log("Token generated in login",token);
 
     res.status(200).json({
+       success: true,
       message: 'Login successful',
       token,
       user: {

@@ -40,42 +40,12 @@
       </button>
     </form>
 
-    <p id="msg" class="mt-4 text-center text-red-500 font-medium"></p>
+    <p id="msg" class="mt-4 text-center text-green-500 font-medium"></p>
   </div>
 
   <!-- Scripts -->
-  <script src="../public/js/api.js"></script>
-  <script>
-    const form = document.getElementById("loginForm");
-    const msg = document.getElementById("msg");
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-
-      try {
-        const res = await sendRequest("/auth/login", "POST", { email, password });
-
-        if (res.token && res.user) {
-          if (res.user.role !== "warden") {
-            msg.textContent = "Access denied: Not a warden.";
-            return;
-          }
-
-          localStorage.setItem("token", res.token);
-          localStorage.setItem("user", JSON.stringify(res.user));
-          window.location.href = "warden-dashboard.html";
-        } else {
-          msg.textContent = res.message || "Login failed.";
-        }
-      } catch (err) {
-        console.error("Login error:", err);
-        msg.textContent = "Something went wrong.";
-      }
-    });
-  </script>
+  <script src="js/api.js"></script>
+  <script src="js/warden-login.js"></script>
 </body>
 </html>
 

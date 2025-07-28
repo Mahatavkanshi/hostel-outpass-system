@@ -1,6 +1,6 @@
 // public/js/api.js
 
-const API_BASE = "https://hostel-outpass-system.onrender.com/api"; // Added /api prefix
+const API_BASE = "https://hostel-outpass-system.onrender.com/api"; // Update this if your backend runs elsewhere
 
 async function sendRequest(endpoint, method = "GET", data = null, token = null) {
   const config = {

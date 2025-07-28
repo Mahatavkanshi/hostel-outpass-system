@@ -96,7 +96,7 @@ if (signupForm) {
       localStorage.setItem("user", JSON.stringify(userToStore));
       
       alert("Signup successful! Please wait for warden verification.");
-      window.location.href = "index.html";
+      window.location.href = "login.html";
     } else {
       alert(res.message || "Signup failed");
     }

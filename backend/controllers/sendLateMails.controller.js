@@ -70,6 +70,7 @@ const sendLateEmailsToStudents = async (outpassIds = []) => {
         console.log(`❌ User not found for outpass ${outpass._id}`);
         continue;
       }
+    
 
       console.log(`📧 Sending late reminder to ${user.name} (${user.email})`);
 
@@ -81,10 +82,11 @@ const sendLateEmailsToStudents = async (outpassIds = []) => {
       }
     }
 
-  } catch (error) {
+  }catch (error) {
     console.error('❌ Error in sendLateEmailsToStudents:', error);
   }
 };
+
 
 module.exports = { sendLateEmailsToStudents };
 
