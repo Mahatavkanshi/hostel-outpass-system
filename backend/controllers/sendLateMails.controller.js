@@ -13,10 +13,21 @@ const sendLateMail = async (email, name, outpass) => {
     }
   });
 
-  // Calculate minutes late
-  const timeIn = new Date(outpass.timeIn);
-  const now = new Date();
-  const minutesLate = Math.floor((now - timeIn) / (1000 * 60));
+  // Correctly construct expected return time
+  let expectedReturn = new Date(outpass.dateOfLeaving);
+  let minutesLate = 0;
+  try {
+    if (outpass.timeIn && typeof outpass.timeIn === 'string') {
+      const [hours, minutes] = outpass.timeIn.split(":");
+      expectedReturn.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      const now = new Date();
+      minutesLate = Math.floor((now - expectedReturn) / (1000 * 60));
+    } else {
+      console.error('Invalid timeIn format for outpass:', outpass._id, outpass.timeIn);
+    }
+  } catch (err) {
+    console.error('Error parsing expected return time for outpass:', outpass._id, err);
+  }
 
   const mailOptions = {
     from: 'Hostel Warden <mahatavkanshisaini@gmail.com>',
@@ -27,8 +38,8 @@ const sendLateMail = async (email, name, outpass) => {
 ⚠️ URGENT REMINDER: You are ${minutesLate} minutes late to return to the hostel!
 
 📍 Place of Visit: ${outpass.placeOfVisit}
-🕒 Expected Return Time: ${new Date(outpass.timeIn).toLocaleTimeString()}
-📅 Date of Leaving: ${new Date(outpass.dateOfLeaving).toDateString()}
+🕒 Expected Return Time: ${expectedReturn.toLocaleTimeString()}
+📅 Date of Leaving: ${expectedReturn.toDateString()}
 
 Please return to the hostel IMMEDIATELY or contact the warden if you have an emergency.
 
@@ -70,13 +81,15 @@ const sendLateEmailsToStudents = async (outpassIds = []) => {
         console.log(`❌ User not found for outpass ${outpass._id}`);
         continue;
       }
-    
-
+  
       console.log(`📧 Sending late reminder to ${user.name} (${user.email})`);
-
+  
       try {
         await sendLateMail(user.email, user.name, outpass);
         console.log(`✅ Reminder sent to ${user.name}`);
+        // Mark as mailed so only one email is sent
+        outpass.mailed = true;
+        await outpass.save();
       } catch (emailError) {
         console.error(`❌ Failed to send email to ${user.name}:`, emailError);
       }

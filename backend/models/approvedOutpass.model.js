@@ -6,6 +6,10 @@ const approvedOutpassSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  outpassId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'OutpassRequest'
+  },
   reason: String,
   placeOfVisit: String,
   dateOfLeaving: Date,

@@ -1,6 +1,9 @@
 // public/js/api.js
 
-const API_BASE = "https://hostel-outpass-system.onrender.com/api"; // Update this if your backend runs elsewhere
+//✅ Use localhost for development, production URL for deployment
+const API_BASE = window.location.hostname === 'localhost' 
+  ? "http://localhost:5000/api" 
+  : "https://hostel-outpass-system.onrender.com/api";
 
 async function sendRequest(endpoint, method = "GET", data = null, token = null) {
   const config = {
@@ -14,11 +17,18 @@ async function sendRequest(endpoint, method = "GET", data = null, token = null) 
   if (token) config.headers.Authorization = `Bearer ${token}`;
 
   try {
-    const res = await fetch(`${API_BASE}${endpoint}`, config);
+      const res = await fetch(`${API_BASE}${endpoint}`, config);
     
     // Check if response is ok
     if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+      const errorText = await res.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText || `HTTP error! status: ${res.status}` };
+      }
+      throw new Error(errorData.message || `HTTP error! status: ${res.status}`);
     }
     
     // Check if response is JSON
@@ -30,7 +40,7 @@ async function sendRequest(endpoint, method = "GET", data = null, token = null) 
     return await res.json();
   } catch (error) {
     console.error("API error:", error);
-    return { message: "Something went wrong! " + error.message };
+    throw error; // ✅ Re-throw the error so calling code can handle it
   }
 }
 

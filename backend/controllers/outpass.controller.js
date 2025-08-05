@@ -64,16 +64,16 @@ exports.reviewOutpass = async (req, res) => {
     
     // ✅ IF APPROVED: Create ApprovedOutpass entry
     if (status === 'approved') {
-      // 🕒 Get current time (now)
-      const now = new Date();
 
       // ⏱ Calculate expected return time from student's timeIn string
       const expectedReturn = new Date(request.dateOfLeaving);
       const [hours, minutes] = request.timeIn.split(':');
       expectedReturn.setHours(parseInt(hours), parseInt(minutes), 0);
+      
 
+      let currentTime = new Date();
       // ⏳ Check if student is late right now
-      const isLate = now > expectedReturn;
+      const isLate = currentTime > expectedReturn;
 
       const approvedData = {
         userId: request.userId,
@@ -94,7 +94,7 @@ exports.reviewOutpass = async (req, res) => {
         isReturn: false,                       // ❌ Student hasn’t returned yet by default
         mailed: false,                     // ❌ Email not sent yet
         lateLocation: request.lateLocation,
-        originalOutpassId: request._id
+        OutpassId: request._id
       };
 
       await ApprovedOutpass.create(approvedData);
@@ -147,8 +147,24 @@ exports.markStudentReturned = async (req, res) => {
 
     // Check if student returned on time
     outpass.isOutpassValid = now <= expectedReturn;
+    // Update lateStatus based on actual return
+    outpass.lateStatus = now > expectedReturn ? 'late' : 'on-time';
 
     await outpass.save();
+
+
+    // ✅ FIX: Also update ApprovedOutpass
+    await ApprovedOutpass.findOneAndUpdate(
+      { originalOutpassId: outpassId },
+      {
+        returnTime: now,
+        isOutpassValid: outpass.isOutpassValid,
+        lateStatus: outpass.lateStatus,
+        isReturn: true
+      }
+    );
+
+
 
     res.status(200).json({
       message: `Student marked as returned. Outpass is ${outpass.isOutpassValid ? 'VALID' : 'LATE'}.`,
@@ -159,5 +175,16 @@ exports.markStudentReturned = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Failed to mark return', error: err.message });
   }
+};
+
+exports.getApprovedOutpassById = async (req, res) => {
+  const id = req.params.id;
+  const outpass = await ApprovedOutpass.findById(id);
+  
+  if (!outpass) {
+    return res.status(404).json({ message: "Outpass not found" });
+  }
+
+  res.json(outpass);
 };
 

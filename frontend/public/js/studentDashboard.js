@@ -69,10 +69,6 @@ async function loadOutpasses() {
 
         const isLate = currentTime > allowedReturnTime && req.status === "approved";
 
-        const locationButton = isLate
-          ? `<button onclick="sendLocation('${req._id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">Send My Location</button>`
-          : "—";
-
         const row = document.createElement("tr");
         row.innerHTML = `
           <td class="py-2 px-4 border-b">${new Date(req.dateOfLeaving).toLocaleDateString()}</td>
@@ -81,7 +77,6 @@ async function loadOutpasses() {
           <td class="py-2 px-4 border-b">${req.placeOfVisit}</td>
           <td class="py-2 px-4 border-b">${req.reason}</td>
           <td class="py-2 px-4 border-b">${req.status}</td>
-          <td class="py-2 px-4 border-b">${locationButton}</td>
         `;
         tableBody.appendChild(row);
       });
@@ -94,31 +89,48 @@ async function loadOutpasses() {
   }
 }
 
-// ✅ Send location for a specific outpass
+// // ✅ Send location for a specific outpass
 async function sendLocation(outpassId) {
   if (!navigator.geolocation) {
     return alert("Geolocation is not supported by your browser.");
   }
 
+  console.log('📍 Attempting to send location for outpass:', outpassId);
+
   navigator.geolocation.getCurrentPosition(async (position) => {
     const latitude = position.coords.latitude;
     const longitude = position.coords.longitude;
 
+    console.log('📍 Got location:', { latitude, longitude });
+
     try {
       const response = await sendRequest(`/outpass/${outpassId}/location`, "POST", { latitude, longitude }, token);
       
+      console.log('📍 Location submission response:', response);
+      
       if (response.message) {
         alert(response.message);
-        document.getElementById("lateNotice").innerHTML = `<p class="font-semibold text-green-700">✅ Location already sent to warden.</p>`;
+        if (response.message.includes("already logged")) {
+          document.getElementById("lateNotice").innerHTML = `<p class="font-semibold text-green-700">✅ Location already sent to warden.</p>`;
+        } else if (response.message.includes("late")) {
+          document.getElementById("lateNotice").innerHTML = `<p class="font-semibold text-red-700">⚠️ You are late! Location sent to warden.</p>`;
+        } else {
+          document.getElementById("lateNotice").innerHTML = `<p class="font-semibold text-green-700">✅ Location recorded successfully.</p>`;
+        }
       } else {
         alert("❌ Error: " + (response.error || "Unknown error occurred"));
       }
     } catch (err) {
-      console.error("Location submission failed", err);
-      alert("Something went wrong while sending location.");
+      console.error("❌ Location submission failed", err);
+      alert("❌ Failed to send location: " + err.message);
     }
-  }, () => {
-    alert("❌ Location access denied.");
+  }, (error) => {
+    console.error("❌ Geolocation error:", error);
+    alert("❌ Location access denied or unavailable.");
+  }, {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 60000
   });
 }
 
@@ -126,6 +138,12 @@ async function sendLocation(outpassId) {
 async function sendLocationFromLateNotice() {
   try {
     const res = await sendRequest(`/outpass/approved/${user._id}`, "GET", null, token);
+    
+    // Handle 404 case (no approved outpasses found)
+    if (res.message && res.message.includes('No approved outpasses found')) {
+      return alert("No active outpass found.");
+    }
+    
     if (!res || !res.data || !Array.isArray(res.data)) {
       throw new Error('Invalid response format');
     }
@@ -147,6 +165,12 @@ async function sendLocationFromLateNotice() {
 async function checkIfLateReturn() {
   try {
     const res = await sendRequest(`/outpass/approved/${user._id}`, "GET", null, token);
+    
+    // Handle 404 case (no approved outpasses found)
+    if (res.message && res.message.includes('No approved outpasses found')) {
+      return;
+    }
+    
     if (!res || !res.data || !Array.isArray(res.data)) {
       throw new Error('Invalid response format');
     }
@@ -160,7 +184,7 @@ async function checkIfLateReturn() {
     const [hours, minutes] = latest.timeIn.split(':');
     returnTime.setHours(parseInt(hours), parseInt(minutes), 0);
     
-    if (now > returnTime && !latest.returned) {
+    if (now > returnTime && !latest.isReturn) {
       document.getElementById("lateNotice").classList.remove("hidden");
       document.getElementById("lateNotice").style.display = "block";
     }
@@ -175,3 +199,4 @@ document.addEventListener("DOMContentLoaded", () => {
   loadOutpasses();
   checkIfLateReturn();
 });
+

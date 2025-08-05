@@ -82,7 +82,6 @@
             <th class="py-2 px-4 border-b">Place</th>
             <th class="py-2 px-4 border-b">Reason</th>
             <th class="py-2 px-4 border-b">Status</th>
-            <th class="py-2 px-4 border-b">Actions</th>
           </tr>
         </thead>
         <tbody id="outpassTableBody" class="text-gray-800 dark:text-gray-100"></tbody>
@@ -99,6 +98,14 @@
       </button>
     </div>
   </div>
+ 
+  <div id="locationContainer" class="mt-4 hidden">
+  <button id="sendLocationBtn" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">
+    📍 Share Location with Warden
+  </button>
+  <p id="locationStatus" class="text-sm mt-2 text-gray-600"></p>
+</div>
+
 
   <!-- ✅ Load Other Scripts -->
   <script src="js/api.js"></script>

@@ -65,6 +65,26 @@
     </div>
     <p id="verifyMsg" class="mt-4 text-center text-red-600 font-semibold"></p>
   </div>
+  <!-- ✅ Late Student Locations -->
+  <div class="p-4">
+  <h2 class="text-xl font-bold mb-4">Late Student Locations</h2>
+  <table class="w-full table-auto border-collapse border border-gray-300" id="lateStudentsTable">
+    <thead>
+      <tr class="bg-gray-200">
+        <th class="border p-2">Name</th>
+        <th class="border p-2">College ID</th>
+        <th class="border p-2">Email</th>
+        <th class="border p-2">Latitude</th>
+        <th class="border p-2">Longitude</th>
+        <th class="border p-2">Captured At</th>
+      </tr>
+    </thead>
+    <tbody id="lateStudentsBody">
+      <!-- Rows will be inserted here -->
+    </tbody>
+  </table>
+</div>
+
 
   <!-- ✅ Scripts -->
   <script src="js/api.js"></script>

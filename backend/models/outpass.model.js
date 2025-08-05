@@ -34,7 +34,7 @@ const outpassSchema = new mongoose.Schema({
     capturedAt: Date
   },
 
-         // true if returned before inTime, else false
+  // true if returned before inTime, else false
 
 }, { timestamps: true });
 

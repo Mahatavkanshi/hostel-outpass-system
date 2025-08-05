@@ -109,6 +109,46 @@ async function handleVerification(requestId, status) {
   }
 }
 
+// ✅ Load Late Students' Locations
+async function loadLateStudents() {
+  const tableBody = document.getElementById("lateStudentsBody");
+
+  try {
+    console.log('🔍 Loading late students...');
+    const res = await sendRequest("/outpass/late-locations", "GET", null, token);
+
+    console.log('📊 Late students response:', res);
+
+    if (!res.success || !Array.isArray(res.data) || res.data.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-2 text-gray-500">No late students found.</td></tr>`;
+      return;
+    }
+
+    tableBody.innerHTML = "";
+
+    res.data.forEach(entry => {
+      const row = document.createElement("tr");
+      
+      row.innerHTML = `
+        <td class="border p-2">${entry.userId?.name || "N/A"}</td>
+        <td class="border p-2">${entry.userId?.collegeId || "N/A"}</td>
+        <td class="border p-2">${entry.userId?.email || "N/A"}</td>
+        <td class="border p-2">${entry.latitude || "N/A"}</td>
+        <td class="border p-2">${entry.longitude || "N/A"}</td>
+        <td class="border p-2">${entry.capturedAt ? new Date(entry.capturedAt).toLocaleString() : "N/A"}</td>
+      `;
+
+      tableBody.appendChild(row);
+    });
+
+    console.log(`✅ Loaded ${res.data.length} late students`);
+  } catch (err) {
+    console.error("❌ Error loading late students:", err);
+    tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500">Error loading data: ${err.message}</td></tr>`;
+  }
+}
+
+
 // ✅ Logout
 function logout() {
   localStorage.removeItem("token");
@@ -119,7 +159,7 @@ function logout() {
 // ✅ Initial Load
 loadPendingRequests();
 loadPendingVerifications();
-
+loadLateStudents();
 
 
 

@@ -2,6 +2,9 @@ const app = require('./app');
 const express = require('express');
 const cors = require('cors');
 
+// Start the cron job
+require('./cron/schedular');
+
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());

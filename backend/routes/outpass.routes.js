@@ -6,12 +6,15 @@ const {
   getPendingOutpasses,
   reviewOutpass,
   getStudentOutpasses,
-  markStudentReturned
+  markStudentReturned,
+  getApprovedOutpassById
 } = require('../controllers/outpass.controller');
+
 const {
   submitLocation
-} = require('../controllers/location.controller'); // We’ll create this next
+} = require('../controllers/location.controller'); // We'll create this next
 
+const ApprovedOutpass = require('../models/approvedOutpass.model');
 
 const auth = require('../middlewares/auth.middleware');
 const restrictTo = require('../middlewares/role.middleware');
@@ -23,15 +26,14 @@ router.use(auth);
 router.post('/', restrictTo('student'), submitOutpass);
 router.get('/my', restrictTo('student'), getStudentOutpasses);
 
-const ApprovedOutpass = require('../models/approvedOutpass.model'); // ✅ Import the model
+// ✅ Import the model
 
 // ✅ Get approved outpasses for a specific student
 router.get('/approved/:userId', restrictTo('student'), async (req, res) => {
   try {
     const { userId } = req.params;
     const outpasses = await ApprovedOutpass.find({
-      studentId: userId,
-      status: 'approved'
+      userId: userId
     });
 
     if (!outpasses || outpasses.length === 0) {
@@ -46,11 +48,67 @@ router.get('/approved/:userId', restrictTo('student'), async (req, res) => {
 });
 
 // Route to log location if student is late
-router.post('/:id/location', restrictTo('student'), submitLocation);
+router.post('/:id/location', restrictTo('student'), (req, res, next) => {
+  console.log('📍 Location route hit:', { 
+    method: req.method, 
+    url: req.url, 
+    params: req.params, 
+    body: req.body 
+  });
+  next();
+}, submitLocation);
 
 // Warden routes
 router.get('/pending', restrictTo('warden'), getPendingOutpasses);
 router.put('/:id', restrictTo('warden'), reviewOutpass);
+
+// ✅ Warden-only route to get late students' locations (MOVE THIS BEFORE /approved/:id)
+router.get('/late-locations', restrictTo('warden'), async (req, res) => {
+  try {
+    console.log('🔍 Fetching late students...');
+    const lateOutpasses = await ApprovedOutpass.find({
+      lateStatus: 'late'
+    }).populate('userId', 'name email collegeId'); // Assuming userId is referenced
+
+    console.log(`📊 Found ${lateOutpasses.length} late outpasses`);
+    console.log('📋 Late outpasses:', lateOutpasses.map(o => ({
+      id: o._id,
+      userId: o.userId?.name,
+      lateLocation: o.lateLocation
+    })));
+
+    if (!lateOutpasses.length) {
+      return res.json({ 
+        success: true, 
+        data: [],
+        message: 'No late students found' 
+      });
+    }
+
+    // ✅ Format data to match frontend expectations
+    const locationData = lateOutpasses.map(entry => ({
+      userId: {
+        name: entry.userId.name,
+        collegeId: entry.userId.collegeId,
+        email: entry.userId.email
+      },
+      latitude: entry.lateLocation?.latitude || 'N/A',
+      longitude: entry.lateLocation?.longitude || 'N/A',
+      capturedAt: entry.lateLocation?.capturedAt || entry.updatedAt
+    }));
+
+    res.json({ 
+      success: true, 
+      data: locationData 
+    });
+  } catch (err) {
+    console.error('❌ Error fetching late locations:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
 
 // Gatekeeper routes
 router.post(
@@ -60,6 +118,7 @@ router.post(
   markStudentReturned         // controller logic
 );
 
-
+// ✅ Move this route AFTER late-locations to prevent conflicts
+router.get('/approved/:id', getApprovedOutpassById);
 
 module.exports = router;
