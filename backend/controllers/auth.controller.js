@@ -1,7 +1,7 @@
 const User = require('../models/user.model');
 const bcrypt = require('bcryptjs');
 const { generateToken } = require('../utils/jwt');
-
+const path = require('path');
 
 exports.signup = async (req, res) => {
     console.log('BODY:', req.body);
@@ -13,13 +13,23 @@ exports.signup = async (req, res) => {
     if (existing) return res.status(400).json({ message: 'Email already registered' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+        // 🔗 Build a public URL for the uploaded image
+    let faceImageUrl = null;
+    if (req.file) {
+      // multer gives you filename we set above
+      const filename = req.file.filename;
+      // e.g. http://localhost:5000/uploads/1724234234234.jpeg
+      faceImageUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+    }
 
     const user = await User.create({
       name,
       collegeId,
       email,
       password: hashedPassword,
-      role
+      role,     
+       faceImage: faceImageUrl
+  // ✅ Save image path                           
     });
 
     const token = generateToken(user._id, user.role);
@@ -31,7 +41,8 @@ exports.signup = async (req, res) => {
         id: user._id,
         name: user.name,
         role: user.role,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        faceImage: user.faceImage
       }
     });
   } catch (err) {

@@ -7,7 +7,9 @@ const {
   reviewOutpass,
   getStudentOutpasses,
   markStudentReturned,
-  getApprovedOutpassById
+  markAllReturned,
+  getApprovedOutpassById,
+   getPendingReturns // ✅ ADD THIS
 } = require('../controllers/outpass.controller');
 
 const {
@@ -85,6 +87,10 @@ router.get('/late-locations', restrictTo('warden'), async (req, res) => {
       });
     }
 
+
+    
+// 
+
     // ✅ Format data to match frontend expectations
     const locationData = lateOutpasses.map(entry => ({
       userId: {
@@ -110,13 +116,16 @@ router.get('/late-locations', restrictTo('warden'), async (req, res) => {
   }
 });
 
-// Gatekeeper routes
-router.post(
-  '/outpass/:id/mark-returned',
-  auth,             // checks token
-  restrictTo('gatekeeper'),  // ensures gatekeeper
-  markStudentReturned         // controller logic
-);
+
+
+
+// gatekeeper routes
+router.get('/gatekeeper/not-returned', restrictTo('gatekeeper'), getPendingReturns);
+router.put('/gatekeeper/mark-all-returned', restrictTo('gatekeeper'), markAllReturned);
+router.put('/gatekeeper/:id', restrictTo('gatekeeper'), markStudentReturned);
+
+
+
 
 // ✅ Move this route AFTER late-locations to prevent conflicts
 router.get('/approved/:id', getApprovedOutpassById);

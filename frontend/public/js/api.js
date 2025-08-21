@@ -1,9 +1,10 @@
 // public/js/api.js
 
-//✅ Use localhost for development, production URL for deployment
-const API_BASE = window.location.hostname === 'localhost' 
-  ? "http://localhost:5000/api" 
-  : "https://hostel-outpass-system.onrender.com/api";
+// ✅ Use localhost for development, production URL for deployment
+// const API_BASE = window.location.hostname === 'localhost' 
+//   ? "http://localhost:5000/api" 
+//   : "https://hostel-outpass-system.onrender.com/api";
+const API_BASE = "http://localhost:5000/api"; 
 
 async function sendRequest(endpoint, method = "GET", data = null, token = null) {
   const config = {

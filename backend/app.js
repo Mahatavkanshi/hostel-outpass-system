@@ -9,7 +9,7 @@ const contactRoutes = require('./routes/contact.routes');    // handles all the 
 const sendLateMailsRoutes = require('./routes/sendLateMails.routes');
 dotenv.config(); // Load .env vars       //loads sensitive configuration from .env file into process.env
 const locationRoutes = require('./routes/location.routes');
-
+const path = require('path');
 
 
 const connectDB = require('./config/db');  // establishes connection to the database using mongoose.
@@ -54,6 +54,9 @@ app.use('/api/contact', contactRoutes); // ✅ Step 2: mount route at /api/conta
 app.use('/api/outpass/:id/mark-returned', outpassRoutes); // ✅ Step 3: mount route for marking outpass as returned
 app.use('/api', sendLateMailsRoutes);
 app.use('/api/location', locationRoutes);
+app.use('/api/gatekeeper', require('./routes/gatekeeper.routes'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 
 // Export app

@@ -64,7 +64,7 @@ if (loginForm) {
   });
 }
 
-// 📝 SIGNUP HANDLER
+// 📝 SIGNUP HANDLER (with face image)
 if (signupForm) {
   signupForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -74,32 +74,54 @@ if (signupForm) {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
     const role = "student"; // Only students can sign up
+    const faceImage = document.getElementById("faceImage").files[0];
 
-    const res = await sendRequest("/auth/signup", "POST", {
-      name,
-      collegeId,
-      email,
-      password,
-      role,
-    });
+    // 🔹 Use FormData
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("collegeId", collegeId);
+    formData.append("email", email);
+    formData.append("password", password);
+    formData.append("role", role);
+    if (faceImage) {
+      formData.append("faceImage", faceImage);
+    }
 
-    if (res.token && res.user) {
-      // ✅ Save token and user with correct _id format for signup too
-      const userToStore = {
-        _id: res.user.id,
-        name: res.user.name,
-        role: res.user.role,
-        isVerified: res.user.isVerified
-      };
-      
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("user", JSON.stringify(userToStore));
-      
-      alert("Signup successful! Please wait for warden verification.");
-      window.location.href = "login.html";
-    } else {
-      alert(res.message || "Signup failed");
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/signup", {
+  method: "POST",
+  body: formData
+});
+
+
+      // ✅ safer error handling
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status} - ${text}`);
+      }
+
+      const data = await res.json();
+
+      if (data.token && data.user) {
+        // ✅ use _id (check what backend sends)
+        const userToStore = {
+          _id: data.user._id || data.user.id,
+          name: data.user.name,
+          role: data.user.role,
+          isVerified: data.user.isVerified
+        };
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(userToStore));
+
+        alert("Signup successful! Please wait for warden verification.");
+        window.location.href = "login.html";
+      } else {
+        alert(data.message || "Signup failed");
+      }
+    } catch (err) {
+      console.error("Signup error:", err);
+      alert("Error during signup. Try again.");
     }
   });
 }
-

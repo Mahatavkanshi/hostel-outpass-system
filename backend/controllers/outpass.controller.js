@@ -1,37 +1,22 @@
 const Outpass = require('../models/outpass.model');
-const ApprovedOutpass = require('../models/approvedOutpass.model.js'); 
+const ApprovedOutpass = require('../models/approvedOutpass.model.js');
 
-
-// 🚀 1. STUDENT: Submit an outpass request
+/* 1) STUDENT: Submit an outpass */
 exports.submitOutpass = async (req, res) => {
   const userId = req.user.userId;
-  const {
-    reason,
-    placeOfVisit,
-    dateOfLeaving,
-    timeOut,
-    timeIn,
-    emergencyContact
-  } = req.body;
+  const { reason, placeOfVisit, dateOfLeaving, timeOut, timeIn, emergencyContact } = req.body;
 
   try {
     const outpass = await Outpass.create({
-      userId,
-      reason,
-      placeOfVisit,
-      dateOfLeaving,
-      timeOut,
-      timeIn,
-      emergencyContact
+      userId, reason, placeOfVisit, dateOfLeaving, timeOut, timeIn, emergencyContact
     });
-
     res.status(201).json({ message: 'Outpass request submitted', outpass });
   } catch (err) {
     res.status(500).json({ message: 'Failed to submit request', error: err.message });
   }
 };
 
-// 🧑‍🏫 2. WARDEN: View all pending requests
+/* 2) WARDEN: View pending requests */
 exports.getPendingOutpasses = async (req, res) => {
   try {
     const requests = await Outpass.find({ status: 'pending' })
@@ -42,7 +27,7 @@ exports.getPendingOutpasses = async (req, res) => {
   }
 };
 
-// ✅ 3. WARDEN: Approve or Reject an outpass
+/* 3) WARDEN: Approve/Reject */
 exports.reviewOutpass = async (req, res) => {
   const requestId = req.params.id;
   const { status, remarks } = req.body;
@@ -59,20 +44,14 @@ exports.reviewOutpass = async (req, res) => {
     request.reviewedBy = req.user.userId;
     request.reviewedAt = new Date();
     request.remarks = remarks;
-
     await request.save();
-    
-    // ✅ IF APPROVED: Create ApprovedOutpass entry
+
     if (status === 'approved') {
-
-      // ⏱ Calculate expected return time from student's timeIn string
       const expectedReturn = new Date(request.dateOfLeaving);
-      const [hours, minutes] = request.timeIn.split(':');
-      expectedReturn.setHours(parseInt(hours), parseInt(minutes), 0);
-      
+      const [hours, minutes] = (request.timeIn || '00:00').split(':');
+      expectedReturn.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
 
-      let currentTime = new Date();
-      // ⏳ Check if student is late right now
+      const currentTime = new Date();
       const isLate = currentTime > expectedReturn;
 
       const approvedData = {
@@ -82,36 +61,29 @@ exports.reviewOutpass = async (req, res) => {
         dateOfLeaving: request.dateOfLeaving,
         timeOut: request.timeOut,
         timeIn: request.timeIn,
-        returnTime: request.returnTime || null,
-        isOutpassValid: request.isOutpassValid || null,
+        returnTime: null,
+        isOutpassValid: true,
         emergencyContact: request.emergencyContact,
         reviewedBy: request.reviewedBy,
         reviewedAt: request.reviewedAt,
         remarks: request.remarks,
-
-        // ✅ NEW FIELDS:
-        lateStatus: isLate ? 'late' : 'on-time',   // ⏳ Is student already late at approval time?
-        isReturn: false,                       // ❌ Student hasn’t returned yet by default
-        mailed: false,                     // ❌ Email not sent yet
+        lateStatus: isLate ? 'late' : 'on-time',
+        isReturn: false,
+        mailed: false,
         lateLocation: request.lateLocation,
         OutpassId: request._id
       };
 
       await ApprovedOutpass.create(approvedData);
-      console.log('ApprovedOutpass created:', approvedData);
     }
 
-    res.status(200).json({ message: `Outpass ${status}`, request});
-    console.log(`Outpass ${status} by ${req.user.userId} with remarks: ${remarks}`);
-    //console.log('ApprovedOutpass created:', approvedData);
-
+    res.status(200).json({ message: `Outpass ${status}`, request });
   } catch (err) {
     res.status(500).json({ message: 'Failed to update request', error: err.message });
   }
 };
-        
 
-// 👨‍🎓 4. STUDENT: View their own outpass history
+/* 4) STUDENT: Own history */
 exports.getStudentOutpasses = async (req, res) => {
   try {
     const requests = await Outpass.find({ userId: req.user.userId });
@@ -121,70 +93,93 @@ exports.getStudentOutpasses = async (req, res) => {
   }
 };
 
-// 🛡️ 5. GATEKEEPER: Mark student as returned
-exports.markStudentReturned = async (req, res) => {
-  const outpassId = req.params.id;
-
-  try {
-    const outpass = await Outpass.findById(outpassId);
-
-    if (!outpass) {
-      return res.status(404).json({ message: 'Outpass not found' });
-    }
-
-    if (outpass.status !== 'approved') {
-      return res.status(400).json({ message: 'Only approved outpasses can be marked as returned' });
-    }
-
-    // Capture actual return time
-    const now = new Date();
-    outpass.returnTime = now;
-
-    // Convert stored timeIn string ("17:00") to a real date
-    const expectedReturn = new Date(outpass.dateOfLeaving);
-    const [hours, minutes] = outpass.timeIn.split(':');
-    expectedReturn.setHours(parseInt(hours), parseInt(minutes), 0);
-
-    // Check if student returned on time
-    outpass.isOutpassValid = now <= expectedReturn;
-    // Update lateStatus based on actual return
-    outpass.lateStatus = now > expectedReturn ? 'late' : 'on-time';
-
-    await outpass.save();
-
-
-    // ✅ FIX: Also update ApprovedOutpass
-    await ApprovedOutpass.findOneAndUpdate(
-      { originalOutpassId: outpassId },
-      {
-        returnTime: now,
-        isOutpassValid: outpass.isOutpassValid,
-        lateStatus: outpass.lateStatus,
-        isReturn: true
-      }
-    );
-
-
-
-    res.status(200).json({
-      message: `Student marked as returned. Outpass is ${outpass.isOutpassValid ? 'VALID' : 'LATE'}.`,
-      returnTime: outpass.returnTime,
-      isOutpassValid: outpass.isOutpassValid
-    });
-
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to mark return', error: err.message });
-  }
-};
-
+/* 5) SINGLE approved outpass by ID — this was missing */
 exports.getApprovedOutpassById = async (req, res) => {
-  const id = req.params.id;
-  const outpass = await ApprovedOutpass.findById(id);
-  
-  if (!outpass) {
-    return res.status(404).json({ message: "Outpass not found" });
+  try {
+    const { id } = req.params;
+    const outpass = await ApprovedOutpass.findById(id)
+      .populate('userId', 'name email collegeId');
+    if (!outpass) return res.status(404).json({ message: 'Outpass not found' });
+    res.json({ success: true, data: outpass });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
-
-  res.json(outpass);
 };
+
+/* 6) GATEKEEPER: list NOT returned — keep ONE definition only */
+exports.getPendingReturns = async (req, res) => {
+  try {
+    const pendingReturns = await ApprovedOutpass.find({ isReturn: false })
+      .populate('userId', 'name email collegeId')
+      .sort({ dateOfLeaving: -1 });
+    res.json({ success: true, data: pendingReturns });
+  } catch (err) {
+    console.error('getPendingReturns error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+/* 7) GATEKEEPER: mark ONE student returned */
+exports.markStudentReturned = async (req, res) => {
+  try {
+    const { id } = req.params; // ApprovedOutpass _id
+    const op = await ApprovedOutpass.findById(id);
+    if (!op) return res.status(404).json({ message: 'Outpass not found' });
+    if (op.isReturn) return res.status(400).json({ message: 'Student already marked as returned' });
+
+    const now = new Date();
+    const expectedReturn = new Date(op.dateOfLeaving);
+    const [h, m] = (op.timeIn || '00:00').split(':');
+    expectedReturn.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+
+    op.isReturn = true;
+    op.returnTime = now;
+    op.isOutpassValid = false;
+    op.lateStatus = now > expectedReturn ? 'late' : 'on-time';
+
+    await op.save();
+    res.status(200).json({ message: 'Student marked as returned', outpass: op });
+  } catch (err) {
+    console.error('Error in markStudentReturned:', err);
+    res.status(500).json({ message: 'Failed to mark as returned', error: err.message });
+  }
+};
+
+/* 8) GATEKEEPER: mark ALL (or selected) returned */
+exports.markAllReturned = async (req, res) => {
+  try {
+    const now = new Date();
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
+
+    const filter = { isReturn: false };
+    if (ids && ids.length) filter._id = { $in: ids };
+
+    const outpasses = await ApprovedOutpass.find(filter);
+
+    let updatedCount = 0;
+    for (const op of outpasses) {
+      const expectedReturn = new Date(op.dateOfLeaving);
+      const [h, m] = (op.timeIn || '00:00').split(':');
+      expectedReturn.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+
+      op.isReturn = true;
+      op.returnTime = now;
+      op.isOutpassValid = false;
+      op.lateStatus = now > expectedReturn ? 'late' : 'on-time';
+      await op.save();
+      updatedCount++;
+    }
+
+    res.status(200).json({ message: `${updatedCount} students marked as returned.`, updatedCount });
+  } catch (err) {
+    console.error('Error in markAllReturned:', err);
+    res.status(500).json({ message: 'Failed to mark all as returned', error: err.message });
+  }
+};
+
+
+
+ 
+
+
 

@@ -193,6 +193,78 @@ async function checkIfLateReturn() {
   }
 }
 
+// =====================
+// ✅ Face Capture Logic
+// =====================
+let videoStream;
+
+// Open Camera
+document.getElementById("openCameraBtn")?.addEventListener("click", async () => {
+  try {
+    const video = document.getElementById("video");
+    const cameraBox = document.getElementById("cameraBox");
+    const faceStatus = document.getElementById("faceStatus");
+
+    cameraBox.classList.remove("hidden");
+    faceStatus.textContent = "Opening camera...";
+
+    videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = videoStream;
+
+    faceStatus.textContent = "Camera ready. Please align your face.";
+  } catch (err) {
+    console.error("Camera error:", err);
+    alert("❌ Unable to access camera. Please allow permission.");
+  }
+});
+
+// Capture Face
+document.getElementById("captureBtn")?.addEventListener("click", async () => {
+  try {
+    const canvas = document.getElementById("canvas");
+    const video = document.getElementById("video");
+    const faceStatus = document.getElementById("faceStatus");
+
+    // Draw current video frame to canvas
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+
+    // Convert to Blob
+    canvas.toBlob(async (blob) => {
+      if (!blob) return alert("❌ Failed to capture image.");
+
+      const formData = new FormData();
+      formData.append("faceImage", blob, "face.png");
+
+      faceStatus.textContent = "Uploading face image...";
+
+      try {
+        const res = await fetch(`/students/${user._id}/face`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const data = await res.json();
+        if (data.message) {
+          faceStatus.textContent = "✅ " + data.message;
+        } else {
+          faceStatus.textContent = "❌ Failed: " + (data.error || "Unknown error");
+        }
+      } catch (err) {
+        console.error("Upload error:", err);
+        faceStatus.textContent = "❌ Upload failed.";
+      }
+    }, "image/png");
+  } catch (err) {
+    console.error("Capture error:", err);
+    alert("❌ Capture failed.");
+  }
+});
+
 // ✅ Run these after DOM is fully loaded
 document.addEventListener("DOMContentLoaded", () => {
   checkProfileCompletion();
