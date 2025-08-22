@@ -9,7 +9,7 @@ const contactRoutes = require('./routes/contact.routes');    // handles all the 
 const sendLateMailsRoutes = require('./routes/sendLateMails.routes');
 dotenv.config(); // Load .env vars       //loads sensitive configuration from .env file into process.env
 const locationRoutes = require('./routes/location.routes');
-
+const path = require('path');
 
 
 const connectDB = require('./config/db');  // establishes connection to the database using mongoose.

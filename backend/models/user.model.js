@@ -1,33 +1,25 @@
 const mongoose = require('mongoose');
 
+// example snippet inside your mongoose schema
 const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
+  // existing fields...
+  name: String,
+  collegeId: String,
+  email: { type: String, unique: true },
+  password: String,
+  role: String,
+  isVerified: { type: Boolean, default: false },
+
+  // NEW
+  faceDescriptors: {
+    type: [[Number]], // array of arrays of numbers (each inner array = 128 floats)
+    default: []
   },
-  collegeId: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  password: {
-    type: String,
-    required: true
-  },
-  role: {
-     type: String,
-  enum: ['student', 'warden', 'gatekeeper'],
-  default: 'student'
-  },
-  isVerified: {
-    type: Boolean,
-    default: false
-  }
-}, { timestamps: true });
+
+  faceImage: String // optional existing field
+});
+
+
 
 module.exports = mongoose.model('User', userSchema);
+

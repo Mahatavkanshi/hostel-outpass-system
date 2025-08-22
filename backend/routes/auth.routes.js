@@ -1,8 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { signup, login } = require('../controllers/auth.controller');
+const { login, signupWithDescriptor } = require('../controllers/auth.controller');
+// multer for legacy file uploads
 
-router.post('/signup', signup);
+// existing
+
 router.post('/login', login);
 
+// NEW - JSON descriptor based signup (no multipart)
+router.post('/signup-descriptor', signupWithDescriptor);
+
 module.exports = router;
+
