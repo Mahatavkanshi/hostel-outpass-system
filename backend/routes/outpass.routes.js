@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+// at top near other imports:
+const { studentMarkReturn } = require('../controllers/outpass.controller');
+
 
 const {
   submitOutpass,
@@ -25,6 +28,9 @@ router.use(auth);
 // Student routes
 router.post('/', restrictTo('student'), submitOutpass);
 router.get('/my', restrictTo('student'), getStudentOutpasses);
+// student route to mark return (uses ApprovedOutpass id)
+router.post('/approved/:id/mark-return', restrictTo('student'), studentMarkReturn);
+
 
 // ✅ Import the model
 

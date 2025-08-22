@@ -1,6 +1,6 @@
 const Outpass = require('../models/outpass.model');
 const ApprovedOutpass = require('../models/approvedOutpass.model.js'); 
-
+const User = require('../models/user.model'); 
 
 // 🚀 1. STUDENT: Submit an outpass request
 exports.submitOutpass = async (req, res) => {
@@ -188,3 +188,138 @@ exports.getApprovedOutpassById = async (req, res) => {
   res.json(outpass);
 };
 
+// Helper: Euclidean distance between two 128-length arrays
+function euclideanDistance(a, b) {
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) {
+    const d = (a[i] - b[i]);
+    sum += d * d;
+  }
+  return Math.sqrt(sum);
+}
+
+// Helper: Haversine distance (meters)
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // Earth radius in meters
+  const toRad = x => x * Math.PI / 180;
+  const φ1 = toRad(lat1), φ2 = toRad(lat2);
+  const dφ = toRad(lat2 - lat1), dλ = toRad(lon2 - lon1);
+  const a = Math.sin(dφ/2) * Math.sin(dφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(dλ/2) * Math.sin(dλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+// Student marks return with face descriptors + GPS
+exports.studentMarkReturn = async (req, res) => {
+  try {
+    const approvedId = req.params.id;           // ApprovedOutpass document id
+    const userId = req.user.userId;             // set by auth middleware
+    const { descriptors, lat, lng, accuracy } = req.body;
+
+    // Basic validation
+    if (!descriptors || !Array.isArray(descriptors) || descriptors.length === 0) {
+      return res.status(400).json({ message: 'No descriptors provided' });
+    }
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      return res.status(400).json({ message: 'Invalid location coordinates' });
+    }
+
+    // Load ApprovedOutpass
+    const approved = await ApprovedOutpass.findById(approvedId);
+    if (!approved) return res.status(404).json({ message: 'Approved outpass not found' });
+
+    // Ensure requester owns this approved outpass
+    if (String(approved.userId) !== String(userId)) {
+      return res.status(403).json({ message: 'This outpass does not belong to you' });
+    }
+
+    if (approved.isReturn) {
+      return res.status(400).json({ message: 'Outpass already marked as returned' });
+    }
+
+    // Load user with stored descriptors
+    const user = await User.findById(userId);
+    if (!user || !Array.isArray(user.faceDescriptors) || user.faceDescriptors.length === 0) {
+      return res.status(400).json({ message: 'No enrolled face templates found. Please enroll face first.' });
+    }
+
+    // Compute best (minimum) euclidean distance across all pairs
+    let bestDistance = Infinity;
+    for (const live of descriptors) {
+      if (!Array.isArray(live) || live.length !== 128) continue; // sanity
+      for (const stored of user.faceDescriptors) {
+        if (!Array.isArray(stored) || stored.length !== 128) continue;
+        const d = euclideanDistance(stored, live);
+        if (d < bestDistance) bestDistance = d;
+      }
+    }
+
+    const FACE_THRESHOLD = parseFloat(process.env.FACE_THRESHOLD) || 0.58;
+    if (bestDistance === Infinity || bestDistance > FACE_THRESHOLD) {
+      return res.status(401).json({ message: 'Face not recognized', faceScore: bestDistance });
+    }
+
+    // Geo check: requires HOSTEL_LAT / HOSTEL_LNG in .env
+    const HOSTEL_LAT = parseFloat(process.env.HOSTEL_LAT);
+    const HOSTEL_LNG = parseFloat(process.env.HOSTEL_LNG);
+    if (!HOSTEL_LAT || !HOSTEL_LNG) {
+      return res.status(500).json({ message: 'Server misconfiguration: hostel coordinates not set' });
+    }
+
+   const REQUIRED_ACCURACY = parseFloat(process.env.REQUIRED_ACCURACY) || 300; // meters
+if (accuracy && accuracy > REQUIRED_ACCURACY) {
+  console.warn(`⚠️ GPS accuracy too low (${accuracy}m). Proceeding anyway.`);
+  // don’t block, just warn
+}
+
+    const distanceMeters = haversineDistance(lat, lng, HOSTEL_LAT, HOSTEL_LNG);
+    const GEOFENCE_RADIUS = parseFloat(process.env.GEO_RADIUS) || 80; // meters
+    if (distanceMeters > GEOFENCE_RADIUS) {
+      return res.status(403).json({ message: 'You are outside the hostel boundary', distanceMeters });
+    }
+
+    // All checks passed — record return
+    const now = new Date();
+
+    // Update original Outpass (if referenced)
+    let originalOutpass = null;
+    const outpassId = approved.OutpassId || approved.outpassId || approved.Outpass || approved.OutpassId;
+    if (outpassId) {
+      originalOutpass = await Outpass.findById(outpassId).catch(() => null);
+      if (originalOutpass) {
+        originalOutpass.returnTime = now;
+        const expectedReturn = new Date(originalOutpass.dateOfLeaving);
+        const [h, m] = (originalOutpass.timeIn || '00:00').split(':');
+        expectedReturn.setHours(parseInt(h || '0'), parseInt(m || '0'), 0);
+        originalOutpass.isOutpassValid = now <= expectedReturn;
+        originalOutpass.lateStatus = now > expectedReturn ? 'late' : 'on-time';
+        await originalOutpass.save().catch(err => console.warn('Failed to update original outpass', err));
+      }
+    }
+
+    // Update ApprovedOutpass document
+    const approvedUpdate = {
+      returnTime: now,
+      isReturn: true,
+      isOutpassValid: originalOutpass ? originalOutpass.isOutpassValid : true,
+      lateStatus: originalOutpass ? originalOutpass.lateStatus : 'on-time',
+      lastReturn: {
+        lat, lng, accuracy: accuracy || null, faceScore: bestDistance, distanceMeters, returnedAt: now
+      }
+    };
+    await ApprovedOutpass.findByIdAndUpdate(approvedId, approvedUpdate);
+
+    // Respond with useful info
+    return res.json({
+      success: true,
+      message: 'Return verified and recorded',
+      faceScore: bestDistance,
+      distanceMeters
+    });
+
+  } catch (err) {
+    console.error('studentMarkReturn error:', err);
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
