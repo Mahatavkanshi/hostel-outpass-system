@@ -1,5 +1,5 @@
 const Outpass = require('../models/outpass.model');
-const ApprovedOutpass = require('../models/approvedOutpass.model.js'); 
+
 const User = require('../models/user.model'); 
 
 // 🚀 1. STUDENT: Submit an outpass request
@@ -267,11 +267,10 @@ exports.studentMarkReturn = async (req, res) => {
       return res.status(500).json({ message: 'Server misconfiguration: hostel coordinates not set' });
     }
 
-   const REQUIRED_ACCURACY = parseFloat(process.env.REQUIRED_ACCURACY) || 300; // meters
-if (accuracy && accuracy > REQUIRED_ACCURACY) {
-  console.warn(`⚠️ GPS accuracy too low (${accuracy}m). Proceeding anyway.`);
-  // don’t block, just warn
-}
+    const REQUIRED_ACCURACY = parseFloat(process.env.REQUIRED_ACCURACY) || 300; // meters
+    if (accuracy && accuracy > REQUIRED_ACCURACY) {
+      return res.status(400).json({ message: `GPS accuracy too low (${accuracy}m). Move to open area and try again.` });
+    }
 
     const distanceMeters = haversineDistance(lat, lng, HOSTEL_LAT, HOSTEL_LNG);
     const GEOFENCE_RADIUS = parseFloat(process.env.GEO_RADIUS) || 80; // meters

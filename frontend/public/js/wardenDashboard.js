@@ -147,6 +147,204 @@ async function loadLateStudents() {
     tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500">Error loading data: ${err.message}</td></tr>`;
   }
 }
+async function loadTodayOutpasses() {
+  const tableBody = document.getElementById("todayOutpassBody");
+  const msg = document.getElementById("todayMsg");
+
+  try {
+    const res = await sendRequest("/outpass/today", "GET", null, token);
+
+    // 🔥 Use res.data instead of res
+    if (!res.success || !Array.isArray(res.data) || res.data.length === 0) {
+      msg.textContent = "No students with outpass today.";
+      return;
+    }
+
+    tableBody.innerHTML = "";
+    res.data.forEach(outpass => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${outpass.userId?.name || "N/A"}</td>
+        <td>${outpass.userId?.collegeId || "N/A"}</td>
+        <td>${outpass.userId?.email || "N/A"}</td>
+        <td>
+          <button onclick="openChat('${outpass.userId._id}')" 
+            class="bg-blue-500 text-white px-3 py-1 rounded">
+            Chat
+          </button>
+        </td>
+      `;
+      tableBody.appendChild(row);
+    });
+  } catch (err) {
+    console.error("Error loading today outpasses:", err);
+    msg.textContent = "Failed to load students.";
+  }
+}
+
+
+// Call it on page load
+loadTodayOutpasses();
+// ===============================
+// Warden Dashboard JS
+// ===============================
+// ===============================
+// Warden Dashboard Chat (WebSocket)
+// ===============================
+
+let ws = null;
+let currentChatStudentId = null;
+
+function openChat(studentId) {
+  currentChatStudentId = studentId;
+
+  // Show the chat panel and focus input
+  const panel = document.getElementById("chatPanel");
+  const input = document.getElementById("chatInput");
+  panel.classList.remove("hidden");
+  input.focus();
+
+  // Close any existing socket
+  try { ws && ws.close(); } catch (_) {}
+
+  // Pick the right WS URL for local vs prod
+  const WS_BASE =
+    location.hostname === "localhost" || location.hostname === "127.0.0.1"
+      ? "ws://localhost:5000/ws"
+      : "wss://hostel-outpass-system.onrender.com/ws";
+
+  // Connect with role=warden and the selected studentId
+  ws = new WebSocket(`${WS_BASE}?role=warden&studentId=${studentId}`);
+
+  ws.onopen = () => {
+    console.log("✅ WS connected as warden for student:", studentId);
+  };
+
+  ws.onmessage = (event) => {
+  try {
+    const msg = JSON.parse(event.data);
+
+    if (msg.from === "student") {
+      appendWardenMessage("Student", msg.text, "incoming");
+    } else if (msg.from === "warden") {
+      console.log("Ignoring self-echo");
+    }
+  } catch (e) {
+    console.warn("Non-JSON WS message:", event.data);
+  }
+};
+
+  ws.onerror = (e) => {
+    console.error("❌ WS error", e);
+  };
+
+  ws.onclose = () => {
+    console.warn("⚠️ WS closed");
+  };
+}
+
+// Send message from warden
+function sendWardenChat() {
+  const input = document.getElementById("chatInput");
+  const text = (input.value || "").trim();
+  if (!text) return;
+
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    alert("Chat is not connected.");
+    return;
+  }
+
+  // Send JSON payload; server forwards it to the student for this studentId
+  ws.send(JSON.stringify({ text }));
+
+  appendWardenMessage("You", text, "outgoing");
+  input.value = "";
+}
+
+// Render bubbles in the warden chat panel
+function appendWardenMessage(sender, text, type = "incoming") {
+  const chatBox = document.getElementById("chatBox");
+
+  const wrap = document.createElement("div");
+  wrap.className = type === "outgoing" ? "flex justify-end mb-2" : "flex justify-start mb-2";
+
+  const bubble = document.createElement("div");
+  bubble.className = `max-w-[75%] px-3 py-2 rounded text-sm shadow ${
+    type === "outgoing"
+      ? "bg-blue-600 text-white rounded-br-none"
+      : "bg-gray-200 text-gray-900 rounded-bl-none"
+  }`;
+
+  bubble.innerHTML = `<span class="block text-[11px] opacity-70 mb-0.5">${sender}</span><div>${escapeHtml(text)}</div>`;
+
+  wrap.appendChild(bubble);
+  chatBox.appendChild(wrap);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return (str || "").replace(/[&<>"']/g, (m) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[m]));
+}
+
+// Wire buttons/Enter key (after DOM is ready)
+document.addEventListener("DOMContentLoaded", () => {
+  const sendBtn = document.getElementById("sendWardenBtn") || document.querySelector("button[onclick='sendWardenChat()']");
+  const input = document.getElementById("chatInput");
+  const closeBtn = document.getElementById("closeChatBtn");
+
+  // Send button
+  if (sendBtn) {
+    sendBtn.addEventListener("click", sendWardenChat);
+  }
+
+  // Enter to send
+  input?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      sendWardenChat();
+    }
+  });
+
+  // Close panel
+  closeBtn?.addEventListener("click", () => {
+    document.getElementById("chatPanel").classList.add("hidden");
+    try { ws && ws.close(); } catch (_) {}
+    ws = null;
+    currentChatStudentId = null;
+    document.getElementById("chatBox").innerHTML = "";
+  });
+});
+
+
+// ===============================
+// Close Chat Panel
+// ===============================
+document
+  .getElementById("closeChatBtn")
+  .addEventListener("click", () => {
+    document.getElementById("chatPanel").classList.add("hidden");
+    try {
+      if (socket) socket.disconnect();
+    } catch (_) {}
+    socket = null;
+    currentChatStudentId = null;
+  });
+
+// ===============================
+// Send Message on Enter Key
+// ===============================
+document
+  .getElementById("chatInput")
+  .addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      sendWardenChat();
+    }
+  });
+
+
+
 
 
 // ✅ Logout

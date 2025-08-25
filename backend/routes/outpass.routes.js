@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 // at top near other imports:
 const { studentMarkReturn } = require('../controllers/outpass.controller');
+const Outpass = require("../models/outpass.model"); 
+
+const moment = require("moment");
 
 
 const {
@@ -126,5 +129,24 @@ router.post(
 
 // ✅ Move this route AFTER late-locations to prevent conflicts
 router.get('/approved/:id', getApprovedOutpassById);
+
+// ✅ Get today's outpasses (for the warden list)
+router.get("/today", restrictTo('warden'), async (req, res) => {
+  try {
+    const startOfDay = moment().startOf("day").toDate();
+    const endOfDay = moment().endOf("day").toDate();
+
+    // Query the Outpass collection (requests), not ApprovedOutpass
+    const outpasses = await Outpass.find({
+      dateOfLeaving: { $gte: startOfDay, $lte: endOfDay }
+    }).populate("userId", "name collegeId email");
+
+    res.json({ success: true, data: outpasses });
+  } catch (err) {
+    console.error("❌ Error fetching today's outpasses", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
 
 module.exports = router;

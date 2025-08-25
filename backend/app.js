@@ -22,6 +22,7 @@ connectDB();
 const allowedOrigins = [
   'http://localhost:5000',
   'http://127.0.0.1:5500',
+  
   'https://hostel-outpass-system.vercel.app',
   'https://hostel-outpass-system.onrender.com'
 ];  
@@ -51,10 +52,16 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/outpass', outpassRoutes);
 app.use('/api/contact', contactRoutes); // ✅ Step 2: mount route at /api/contact
-app.use('/api/outpass/:id/mark-returned', outpassRoutes); // ✅ Step 3: mount route for marking outpass as returned
+ // ✅ Step 3: mount route for marking outpass as returned
 app.use('/api', sendLateMailsRoutes);
 app.use('/api/location', locationRoutes);
 
+
+
+// ⚡ Add this at the END of app.js
+app.use("/ws", (req, res) => {
+  res.status(426).send("Upgrade Required");
+});
 
 // Export app
 module.exports = app;

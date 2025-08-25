@@ -12,13 +12,18 @@
     }
   </script>
 
+
   <!-- ✅ Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
     };
-  </script>
+  </script> 
+
+  <!-- face-api.js (CDN) -->
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen font-sans">
@@ -69,6 +74,12 @@
     <h2 class="text-2xl font-bold mb-4">
       Welcome, <span id="studentName" class="text-blue-600 dark:text-blue-400">Student</span>
     </h2>
+<button id="chatWithWardenBtn" 
+  class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 mb-4">
+  💬 Chat with Warden
+</button>
+
+
 
     <h3 class="text-xl font-semibold mt-6 mb-4">Your Outpass Requests</h3>
 
@@ -104,6 +115,55 @@
     📍 Share Location with Warden
   </button>
   <p id="locationStatus" class="text-sm mt-2 text-gray-600"></p>
+</div>
+
+<!-- MARK RETURN BUTTON -->
+<div class="max-w-5xl mx-auto mt-6 text-center">
+  <button id="markReturnBtn" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700">
+    📷 Mark Me Returned
+  </button>
+  <p id="returnMsg" class="mt-2 text-sm text-gray-600"></p>
+</div>
+
+<!-- RETURN MODAL (hidden, shown by JS) -->
+<div id="returnModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 items-center justify-center">
+  <div class="bg-white dark:bg-gray-800 p-4 rounded shadow w-[360px] mx-4">
+    <h3 class="text-lg font-semibold mb-2">Verify Face & Location</h3>
+    <video id="returnVideo" autoplay muted playsinline class="w-full rounded bg-black"></video>
+    <div class="flex gap-2 mt-3">
+      <button id="returnCaptureBtn" class="flex-1 bg-yellow-500 text-black py-2 rounded">Capture</button>
+      <button id="returnSubmitBtn" class="flex-1 bg-blue-600 text-white py-2 rounded">Submit</button>
+      <button id="returnCancelBtn" class="flex-1 bg-gray-300 text-black py-2 rounded">Cancel</button>
+    </div>
+    <p id="returnStatus" class="mt-2 text-sm text-gray-700"></p>
+    <p class="mt-2 text-xs text-gray-500">Capture 1–3 samples for better accuracy. Allow camera & location when prompted.</p>
+  </div>
+</div>
+
+<!-- Chat Sidebar -->
+<div id="chatSidebar" 
+     class="hidden fixed bottom-0 right-4 w-80 h-96 bg-white dark:bg-gray-800 shadow-lg rounded-t-lg flex flex-col">
+
+  <!-- Header -->
+  <div class="flex justify-between items-center bg-blue-600 text-white px-4 py-2 rounded-t-lg">
+    <span class="font-semibold">Chat with Warden</span>
+    <button id="closeChatBtn" class="text-white hover:text-gray-200">✖</button>
+  </div>
+
+  <!-- Messages -->
+  <div id="chatMessages" class="flex-1 p-3 overflow-y-auto text-sm space-y-2">
+    <!-- Messages will appear here -->
+  </div>
+
+  <!-- Input -->
+  <div class="p-2 border-t dark:border-gray-700 flex">
+    <input id="chatInput" 
+           type="text" 
+           placeholder="Type a message..." 
+           class="flex-1 border rounded-l px-2 py-1 text-sm dark:bg-gray-700 dark:text-white"/>
+    <button id="sendChatBtn" 
+            class="bg-blue-600 text-white px-3 rounded-r hover:bg-blue-700">Send</button>
+  </div>
 </div>
 
 
