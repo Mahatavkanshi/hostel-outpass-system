@@ -1,6 +1,15 @@
 // ✅ Load token and user info once
 const token = localStorage.getItem("token");
+// const ws = new WebSocket("ws://localhost:5000/ws");
+// let ws = null;
 
+// choose proper WS base depending on local vs deployed
+const WS_BASE =
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "ws://localhost:5000/ws"
+    : "wss://hostel-outpass-system.onrender.com/ws";
+
+  
 
 let user;
 
@@ -194,6 +203,10 @@ async function checkIfLateReturn() {
     console.error("Error checking return time:", err);
   }
 }
+
+
+
+
 // ---------- NEW: Mark Return flow (face + GPS) ----------
 
 const MODEL_URL = './models'; // relative to signup/dashboard page (frontend/public/models)
@@ -448,7 +461,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const sendBtnEl = document.getElementById("sendChatBtn");
 
   // connect to the backend WS path `/ws`
-  let ws = new WebSocket(`ws://localhost:5000/ws?role=student&studentId=${studentId}`);
+  window.ws = new WebSocket(`${WS_BASE}?role=student&studentId=${studentId}`);
 
   ws.onopen = () => {
     console.log("✅ WS connected");
@@ -532,3 +545,156 @@ ws.onmessage = (event) => {
     document.getElementById("chatSidebar").classList.add("hidden");
   });
 });
+
+
+
+// ------------------ VIDEO CALL ------------------
+let pc;             // RTCPeerConnection
+let localStream;    // camera/mic stream
+const localVideo = document.getElementById("localVideo");
+const remoteVideo = document.getElementById("remoteVideo");
+const videoModal = document.getElementById("videoCallModal");
+
+document.getElementById("startVideoCallBtn")?.addEventListener("click", async () => {
+  await startVideoCall();
+});
+
+document.getElementById("endCallBtn")?.addEventListener("click", () => {
+  endCall();
+});
+
+async function startVideoCall() {
+  try {
+    videoModal.classList.remove("hidden");
+
+    // 1. get camera + mic
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideo.srcObject = localStream;
+
+    // 2. setup peer connection
+    pc = new RTCPeerConnection();
+
+    // push local tracks
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+    // receive remote
+    pc.ontrack = (event) => {
+      remoteVideo.srcObject = event.streams[0];
+    };
+
+    // ice candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        ws.send(JSON.stringify({
+          type: "ice",
+          candidate: event.candidate,
+        }));
+      }
+    };
+
+    // 3. create offer
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // send offer to warden via ws
+    ws.send(JSON.stringify({
+      type: "offer",
+      offer: offer,
+    }));
+  } catch (err) {
+    console.error("video call error", err);
+    alert("Could not start video: " + err.message);
+    endCall();
+  }
+}
+
+async function handleOffer(offer) {
+  videoModal.classList.remove("hidden");
+
+  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  localVideo.srcObject = localStream;
+
+  pc = new RTCPeerConnection();
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+  pc.ontrack = (event) => {
+    remoteVideo.srcObject = event.streams[0];
+  };
+
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      ws.send(JSON.stringify({
+        type: "ice",
+        candidate: event.candidate,
+      }));
+    }
+  };
+
+  await pc.setRemoteDescription(new RTCSessionDescription(offer));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  ws.send(JSON.stringify({
+    type: "answer",
+    answer: answer,
+  }));
+}
+
+async function handleAnswer(answer) {
+  await pc.setRemoteDescription(new RTCSessionDescription(answer));
+}
+
+async function handleIce(candidate) {
+  try {
+    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+  } catch (err) {
+    console.error("ICE add error", err);
+  }
+}
+
+function endCall() {
+  videoModal.classList.add("hidden");
+  if (pc) {
+    pc.close();
+    pc = null;
+  }
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+  localVideo.srcObject = null;
+  remoteVideo.srcObject = null;
+
+  // tell peer call ended (optional)
+  ws.send(JSON.stringify({ type: "endCall" }));
+}
+
+// 🔹 extend existing ws.onmessage to handle signaling
+ws.onmessage = async (event) => {
+  try {
+    const msg = JSON.parse(event.data);
+
+    // --- signaling messages for video call ---
+    if (msg.type === "offer") {
+      await handleOffer(msg.offer);
+    } else if (msg.type === "answer") {
+      await handleAnswer(msg.answer);
+    } else if (msg.type === "ice") {
+      await handleIce(msg.candidate);
+    } else if (msg.type === "endCall") {
+      endCall();
+    }
+
+    // --- chat messages ---
+    else if (msg.type === "chat") {
+      if (msg.from === "warden") {
+        appendMessage("Warden", msg.text, "incoming");
+      } else if (msg.from === "student" && msg.studentId === studentId) {
+        console.log("Ignoring self-echo");
+      }
+    }
+
+  } catch (err) {
+    console.error("Invalid WS message", err);
+  }
+};

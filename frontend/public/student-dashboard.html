@@ -147,8 +147,12 @@
   <!-- Header -->
   <div class="flex justify-between items-center bg-blue-600 text-white px-4 py-2 rounded-t-lg">
     <span class="font-semibold">Chat with Warden</span>
+      <div class="flex gap-2">
+    <!-- 🔹 video call button -->
+    <button id="startVideoCallBtn" title="Start Video Call" class="hover:text-gray-200">📹</button>
     <button id="closeChatBtn" class="text-white hover:text-gray-200">✖</button>
   </div>
+</div>
 
   <!-- Messages -->
   <div id="chatMessages" class="flex-1 p-3 overflow-y-auto text-sm space-y-2">
@@ -163,6 +167,25 @@
            class="flex-1 border rounded-l px-2 py-1 text-sm dark:bg-gray-700 dark:text-white"/>
     <button id="sendChatBtn" 
             class="bg-blue-600 text-white px-3 rounded-r hover:bg-blue-700">Send</button>
+  </div>
+</div>
+<!-- 🔹 Video Call Modal -->
+<div id="videoCallModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center">
+  <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg w-[600px] flex flex-col gap-2">
+    <h3 class="text-lg font-semibold mb-2 text-center">📹 Video Call with Warden</h3>
+
+    <div class="flex gap-2">
+      <!-- local video -->
+      <video id="localVideo" autoplay muted playsinline class="w-1/2 bg-black rounded"></video>
+      <!-- remote video -->
+      <video id="remoteVideo" autoplay playsinline class="w-1/2 bg-black rounded"></video>
+    </div>
+
+    <div class="flex justify-center mt-3 gap-4">
+      <button id="endCallBtn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+        End Call
+      </button>
+    </div>
   </div>
 </div>
 

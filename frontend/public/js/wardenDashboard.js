@@ -359,6 +359,149 @@ loadPendingRequests();
 loadPendingVerifications();
 loadLateStudents();
 
+// ------------------ VIDEO CALL ------------------
+let pc;             // RTCPeerConnection
+let localStream;    // camera/mic stream
+const localVideo = document.getElementById("localVideo");
+const remoteVideo = document.getElementById("remoteVideo");
+const videoModal = document.getElementById("videoCallModal");
+
+document.getElementById("startVideoCallBtn")?.addEventListener("click", async () => {
+  await startVideoCall();
+});
+
+document.getElementById("endCallBtn")?.addEventListener("click", () => {
+  endCall();
+});
+
+async function startVideoCall() {
+  try {
+    videoModal.classList.remove("hidden");
+
+    // 1. get camera + mic
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideo.srcObject = localStream;
+
+    // 2. setup peer connection
+    pc = new RTCPeerConnection();
+
+    // push local tracks
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+    // receive remote
+    pc.ontrack = (event) => {
+      remoteVideo.srcObject = event.streams[0];
+    };
+
+    // ice candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        ws.send(JSON.stringify({
+          type: "ice",
+          candidate: event.candidate,
+        }));
+      }
+    };
+
+    // 3. create offer
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // send offer to student
+    ws.send(JSON.stringify({
+      type: "offer",
+      offer: offer,
+    }));
+  } catch (err) {
+    console.error("video call error", err);
+    alert("Could not start video: " + err.message);
+    endCall();
+  }
+}
+
+async function handleOffer(offer) {
+  videoModal.classList.remove("hidden");
+
+  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  localVideo.srcObject = localStream;
+
+  pc = new RTCPeerConnection();
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+  pc.ontrack = (event) => {
+    remoteVideo.srcObject = event.streams[0];
+  };
+
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      ws.send(JSON.stringify({
+        type: "ice",
+        candidate: event.candidate,
+      }));
+    }
+  };
+
+  await pc.setRemoteDescription(new RTCSessionDescription(offer));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  ws.send(JSON.stringify({
+    type: "answer",
+    answer: answer,
+  }));
+}
+
+async function handleAnswer(answer) {
+  await pc.setRemoteDescription(new RTCSessionDescription(answer));
+}
+
+async function handleIce(candidate) {
+  try {
+    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+  } catch (err) {
+    console.error("ICE add error", err);
+  }
+}
+
+function endCall() {
+  videoModal.classList.add("hidden");
+  if (pc) {
+    pc.close();
+    pc = null;
+  }
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+  localVideo.srcObject = null;
+  remoteVideo.srcObject = null;
+
+  // tell peer call ended (optional)
+  ws.send(JSON.stringify({ type: "endCall" }));
+}
+
+// 🔹 extend existing ws.onmessage to handle signaling
+const oldWardenOnMsg = ws.onmessage;
+ws.onmessage = (event) => {
+  try {
+    const msg = JSON.parse(event.data);
+
+    if (msg.type === "offer") {
+      handleOffer(msg.offer);
+    } else if (msg.type === "answer") {
+      handleAnswer(msg.answer);
+    } else if (msg.type === "ice") {
+      handleIce(msg.candidate);
+    } else if (msg.type === "endCall") {
+      endCall();
+    } else {
+      // fallback to chat handler
+      if (oldWardenOnMsg) oldWardenOnMsg(event);
+    }
+  } catch (err) {
+    console.error("invalid signaling msg", err);
+  }
+};
 
 
 
