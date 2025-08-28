@@ -41,23 +41,25 @@ function setupWebSocket(server) {
         console.error("❌ non-JSON message ignored");
         return;
       }
-      const text = (data && data.text || "").toString().trim();
-      if (!text) return;
+
+      const { type, text, sdp, candidate } = data;
 
       const payload = JSON.stringify({
         from: role,
+        type,
         text,
+        sdp,
+        candidate,
         ts: Date.now()
       });
 
-      // send to the other party
       const target = (role === "student") ? entry.warden : entry.student;
       if (target && target.readyState === WebSocket.OPEN) {
         target.send(payload);
       }
 
-      // also send back to the sender (so they see their own msg in chat)
-      if (ws.readyState === WebSocket.OPEN) {
+      // echo back for sender’s UI (only for chat text)
+      if (type === "chat" && ws.readyState === WebSocket.OPEN) {
         ws.send(payload);
       }
     });

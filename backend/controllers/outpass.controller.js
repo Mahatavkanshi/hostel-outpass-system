@@ -1,4 +1,5 @@
 const Outpass = require('../models/outpass.model');
+const ApprovedOutpass = require('../models/approvedOutpass.model');
 
 const User = require('../models/user.model'); 
 
