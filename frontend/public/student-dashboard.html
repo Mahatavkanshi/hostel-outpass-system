@@ -109,6 +109,28 @@
       </button>
     </div>
   </div>
+
+<!-- ✅ Face Capture Section -->
+<div id="faceCaptureContainer" class="mt-4 hidden">
+  <button id="openCameraBtn" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700">
+    🎥 Open Camera & Capture Face
+  </button>
+
+  <!-- Camera Preview -->
+  <div id="cameraBox" class="mt-3 hidden">
+    <video id="video" autoplay playsinline class="w-64 h-48 border rounded"></video>
+    <br>
+    <button id="captureBtn" class="mt-2 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+      📸 Capture
+    </button>
+    <canvas id="canvas" class="hidden"></canvas>
+  </div>
+
+  <!-- Status -->
+  <p id="faceStatus" class="text-sm mt-2 text-gray-600"></p>
+</div>
+
+
  
   <div id="locationContainer" class="mt-4 hidden">
   <button id="sendLocationBtn" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">

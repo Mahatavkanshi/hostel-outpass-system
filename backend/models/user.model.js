@@ -3,11 +3,15 @@ const mongoose = require('mongoose');
 // example snippet inside your mongoose schema
 const userSchema = new mongoose.Schema({
   // existing fields...
-  name: String,
-  collegeId: String,
-  email: { type: String, unique: true },
-  password: String,
-  role: String,
+  name: { type: String, required: true },
+  collegeId: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: {
+    type: String,
+    enum: ['student', 'warden', 'gatekeeper'],
+    default: 'student'
+  },
   isVerified: { type: Boolean, default: false },
 
   // NEW

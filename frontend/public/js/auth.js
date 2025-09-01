@@ -232,4 +232,3 @@ if (signupForm) {
     resetCaptures();
   });
 }
-

@@ -55,6 +55,9 @@ app.use('/api/contact', contactRoutes); // ✅ Step 2: mount route at /api/conta
  // ✅ Step 3: mount route for marking outpass as returned
 app.use('/api', sendLateMailsRoutes);
 app.use('/api/location', locationRoutes);
+app.use('/api/gatekeeper', require('./routes/gatekeeper.routes'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 
 

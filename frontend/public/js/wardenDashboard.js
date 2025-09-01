@@ -9,14 +9,17 @@ if (!token) {
 
 // ✅ Load Outpass Requests
 async function loadPendingRequests() {
+  console.log("loading pending request function m h");
   const tableBody = document.getElementById("requestsTableBody");
   const msg = document.getElementById("msg");
 
   try {
+    console.log("in try block: for sending request")
     const res = await sendRequest("/outpass/pending", "GET", null, token);
 
     if (!Array.isArray(res) || res.length === 0) {
       msg.textContent = "No pending outpass requests.";
+      console.log("array response ka khali hai, no pending req");
       return;
     }
 
@@ -63,11 +66,14 @@ async function updateStatus(requestId, status) {
 
 // ✅ Load Student Verification Requests (✅ FIXED ENDPOINT)
 async function loadPendingVerifications() {
+  console.log("in loadpendingVerification function");
   const verifyBody = document.getElementById("verificationTableBody");
   const verifyMsg = document.getElementById("verifyMsg");
 
   try {
+    console.log("in try catch block")
     const res = await sendRequest("/verification/pending", "GET", null, token); // 🔧 Fixed endpoint
+    console.log("pending student verification responses: ", res);
 
     if (!Array.isArray(res) || res.length === 0) {
       verifyMsg.textContent = "No pending student verifications.";

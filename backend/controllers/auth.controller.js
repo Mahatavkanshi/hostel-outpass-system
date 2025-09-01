@@ -1,7 +1,7 @@
 const User = require('../models/user.model');
 const bcrypt = require('bcryptjs');
 const { generateToken } = require('../utils/jwt');
-
+const path = require('path');
 
 // ... existing code ...
 
@@ -23,6 +23,14 @@ exports.signupWithDescriptor = async (req, res) => {
     if (existing) return res.status(400).json({ message: 'Email already registered' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+        // 🔗 Build a public URL for the uploaded image
+    let faceImageUrl = null;
+    if (req.file) {
+      // multer gives you filename we set above
+      const filename = req.file.filename;
+      // e.g. http://localhost:5000/uploads/1724234234234.jpeg
+      faceImageUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+    }
 
     // create user and store descriptors
     const user = await User.create({
@@ -43,7 +51,8 @@ exports.signupWithDescriptor = async (req, res) => {
         _id: user._id,
         name: user.name,
         role: user.role,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        faceImage: user.faceImage
       }
     });
   } catch (err) {
