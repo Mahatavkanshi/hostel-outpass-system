@@ -3,12 +3,22 @@ const bcrypt = require('bcryptjs');
 const { generateToken } = require('../utils/jwt');
 const path = require('path');
 
-exports.signup = async (req, res) => {
-    console.log('BODY:', req.body);
+// ... existing code ...
 
-  const { name, collegeId, email, password, role } = req.body;
-
+// NEW controller: accepts JSON descriptors array
+exports.signupWithDescriptor = async (req, res) => {
   try {
+    const { name, collegeId, email, password, role, descriptors } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Missing fields' });
+    }
+
+    // basic descriptors validation
+    if (!descriptors || !Array.isArray(descriptors) || descriptors.length === 0) {
+      return res.status(400).json({ message: 'No face descriptors provided' });
+    }
+
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: 'Email already registered' });
 
@@ -22,14 +32,14 @@ exports.signup = async (req, res) => {
       faceImageUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
     }
 
+    // create user and store descriptors
     const user = await User.create({
       name,
       collegeId,
       email,
       password: hashedPassword,
-      role,     
-       faceImage: faceImageUrl
-  // ✅ Save image path                           
+      role,
+      faceDescriptors: descriptors // store descriptor arrays
     });
 
     const token = generateToken(user._id, user.role);
@@ -38,7 +48,7 @@ exports.signup = async (req, res) => {
       message: 'User created successfully',
       token,
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         role: user.role,
         isVerified: user.isVerified,
@@ -46,10 +56,12 @@ exports.signup = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('signupWithDescriptor error', err);
     res.status(500).json({ message: 'Signup failed', error: err.message });
   }
 };
 
+    
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 

@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 
+// example snippet inside your mongoose schema
 const userSchema = new mongoose.Schema({
+  // existing fields...
   name: { type: String, required: true },
   collegeId: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
@@ -12,12 +14,16 @@ const userSchema = new mongoose.Schema({
   },
   isVerified: { type: Boolean, default: false },
 
-  // 🆕 New field for storing face image
-  faceImage: {
-    type: String, // we'll store file path or filename
-    default: null
-  }
-}, { timestamps: true });
+  // NEW
+  faceDescriptors: {
+    type: [[Number]], // array of arrays of numbers (each inner array = 128 floats)
+    default: []
+  },
+
+  faceImage: String // optional existing field
+});
+
+
 
 module.exports = mongoose.model('User', userSchema);
 

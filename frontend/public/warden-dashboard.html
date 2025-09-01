@@ -85,6 +85,74 @@
   </table>
 </div>
 
+<h3 class="text-xl font-semibold text-gray-600 mt-10 mb-4">Students with Outpass Today</h3>
+<div class="overflow-auto">
+  <table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+    <thead class="bg-purple-600 text-white">
+      <tr>
+        <th class="px-4 py-2 text-left">Name</th>
+        <th class="px-4 py-2 text-left">College ID</th>
+        <th class="px-4 py-2 text-left">Email</th>
+        <th class="px-4 py-2 text-left">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="todayOutpassBody" class="text-gray-800">
+      <!-- Filled by JS -->
+    </tbody>
+  </table>
+</div>
+<p id="todayMsg" class="mt-4 text-center text-red-600 font-semibold"></p>
+
+
+
+<!-- Chat Panel -->
+<div id="chatPanel" 
+     class="hidden fixed bottom-0 right-4 w-80 h-96 bg-white shadow-lg rounded-t-lg flex flex-col">
+
+  <!-- Header -->
+  <div class="flex justify-between items-center bg-blue-600 text-white px-4 py-2 rounded-t-lg">
+  <span class="font-semibold">Chat with Student</span>
+  <div class="flex gap-2">
+    <!-- 📹 video call button -->
+    <button id="startVideoCallBtn" title="Start Video Call" class="hover:text-gray-200">📹</button>
+    <button id="closeChatBtn" class="text-white hover:text-gray-200">✖</button>
+  </div>
+</div>
+
+
+  <!-- Messages -->
+  <div id="chatBox" class="flex-1 p-3 overflow-y-auto text-sm space-y-2"></div>
+
+  <!-- Input -->
+  <div class="p-2 border-t flex">
+    <input id="chatInput" 
+           type="text" 
+           placeholder="Type a message..." 
+           class="flex-1 border rounded-l px-2 py-1 text-sm"/>
+    <button onclick="sendWardenChat()" 
+            class="bg-blue-600 text-white px-3 rounded-r hover:bg-blue-700">Send</button>
+  </div>
+</div>
+<!-- 📹 Video Call Modal -->
+<div id="videoCallModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center">
+  <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg w-[600px] flex flex-col gap-2">
+    <h3 class="text-lg font-semibold mb-2 text-center">📹 Video Call with Student</h3>
+
+    <div class="flex gap-2">
+      <!-- local video -->
+      <video id="localVideo" autoplay muted playsinline class="w-1/2 bg-black rounded"></video>
+      <!-- remote video -->
+      <video id="remoteVideo" autoplay playsinline class="w-1/2 bg-black rounded"></video>
+    </div>
+
+    <div class="flex justify-center mt-3 gap-4">
+      <button id="endCallBtn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+        End Call
+      </button>
+    </div>
+  </div>
+</div>
+
 
   <!-- ✅ Scripts -->
   <script src="js/api.js"></script>
