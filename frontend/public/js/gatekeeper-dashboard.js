@@ -1,5 +1,14 @@
 const token = localStorage.getItem('gatekeeperToken');
-const API_BASE = 'http://localhost:5000/api/outpass';
+
+// Use dynamic API base from api.js
+const getApiBase = () => {
+  const port = window.location.port;
+  if (port === '8080') return '/api';
+  if (port === '5500') return 'http://localhost:5000/api';
+  if (window.location.hostname === 'localhost') return '/api';
+  return `${window.location.protocol}//${window.location.hostname}/api`;
+};
+const API_BASE = `${getApiBase()}/outpass`;
 
 if (!token) {
     window.location.href = './gatekeeper-login.html';

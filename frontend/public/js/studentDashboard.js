@@ -1,13 +1,26 @@
 // ✅ Load token and user info once
 const token = localStorage.getItem("token");
-// const ws = new WebSocket("ws://localhost:5000/ws");
-// let ws = null;
 
-// choose proper WS base depending on local vs deployed
-const WS_BASE =
-  location.hostname === "localhost" || location.hostname === "127.0.0.1"
-    ? "ws://localhost:5000/ws"
-    : "wss://hostel-outpass-system.onrender.com/ws";
+// Dynamic WebSocket URL based on current environment
+const getWebSocketUrl = () => {
+  const port = window.location.port;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  
+  // Docker (port 8080) - use current host with ws/wss protocol
+  if (port === '8080') {
+    return `${protocol}//${window.location.hostname}:${port}/ws`;
+  }
+  
+  // Live Server (port 5500) - connect to local backend
+  if (port === '5500' || window.location.hostname === '127.0.0.1') {
+    return 'ws://localhost:5000/ws';
+  }
+  
+  // Production - use current host with appropriate protocol
+  return `${protocol}//${window.location.host}/ws`;
+};
+
+const WS_BASE = getWebSocketUrl();
 
   
 
@@ -392,9 +405,17 @@ async function submitReturn() {
     clientTime: new Date().toISOString()
   };
 
-  // send to backend endpoint (full URL to avoid client-side base path issues)
+  // send to backend endpoint (use dynamic API base)
+  const getApiBase = () => {
+    const port = window.location.port;
+    if (port === '8080') return '/api';
+    if (port === '5500') return 'http://localhost:5000/api';
+    if (window.location.hostname === 'localhost') return '/api';
+    return `${window.location.protocol}//${window.location.hostname}/api`;
+  };
+  const API_BASE = getApiBase();
   try {
-    const res = await fetch(`http://localhost:5000/api/outpass/approved/${approvedId}/mark-return`, {
+    const res = await fetch(`${API_BASE}/outpass/approved/${approvedId}/mark-return`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

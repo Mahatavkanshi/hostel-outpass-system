@@ -8,7 +8,16 @@ document.getElementById("contactForm").addEventListener("submit", async (e) => {
 
   try {
     console.log("Submitting contact form:", { name, email, message });
-    const res = await fetch("http://localhost:5000/api/contact", {
+    // Use dynamic API base
+    const getApiBase = () => {
+      const port = window.location.port;
+      if (port === '8080') return '/api';
+      if (port === '5500') return 'http://localhost:5000/api';
+      if (window.location.hostname === 'localhost') return '/api';
+      return `${window.location.protocol}//${window.location.hostname}/api`;
+    };
+    const API_BASE = getApiBase();
+    const res = await fetch(`${API_BASE}/contact`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, message }),

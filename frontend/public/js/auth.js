@@ -184,8 +184,9 @@ if (signupForm) {
     }
 
     try {
-      // POST JSON with descriptors
-      const res = await fetch('http://localhost:5000/api/auth/signup-descriptor', {
+      // POST JSON with descriptors (use dynamic API base)
+      const API_BASE = window.API_BASE || '/api';
+      const res = await fetch(`${API_BASE}/auth/signup-descriptor`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,11 +1,35 @@
 // public/js/api.js
 
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+// Dynamically determine API base URL
+const getApiBase = () => {
+  const hostname = window.location.hostname;
+  const port = window.location.port;
+  const protocol = window.location.protocol;
+  
+  // If running through nginx proxy (Docker on port 8080), use relative path
+  if (port === '8080') {
+    return '/api';
+  }
+  
+  // If running locally with Live Server (port 5500), point to backend
+  if (port === '5500' || hostname === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
+  
+  // If localhost without specific port, check if it's the nginx proxy
+  if (hostname === 'localhost') {
+    return '/api';
+  }
+  
+  // Production deployment (Render, Vercel, etc.)
+  return `${protocol}//${hostname}/api`;
+};
 
-const API_BASE = isLocal 
-  ? "http://localhost:5000/api" 
-  : "https://hostel-outpass-system.onrender.com/api";
+const API_BASE = getApiBase();
 
+// Export for use in other scripts
+window.API_BASE = API_BASE;
+window.getApiBase = getApiBase;
 
 async function sendRequest(endpoint, method = "GET", data = null, token = null) {
   const config = {

@@ -21,8 +21,10 @@ connectDB();
 // Middlewares
 const allowedOrigins = [
   'http://localhost:5000',
-  'http://127.0.0.1:5500',
-  
+  'http://localhost:8080',     // Docker nginx proxy
+  'http://127.0.0.1:5500',     // Live Server
+  'http://127.0.0.1:8080',     // Docker nginx proxy (127.0.0.1)
+  'https://sajal.ved.yt',      // Production domain
   'https://hostel-outpass-system.vercel.app',
   'https://hostel-outpass-system.onrender.com'
 ];  

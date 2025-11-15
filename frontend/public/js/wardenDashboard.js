@@ -213,11 +213,26 @@ function openChat(studentId) {
   // Close any existing socket
   try { ws && ws.close(); } catch (_) {}
 
-  // Pick the right WS URL for local vs prod
-  const WS_BASE =
-    location.hostname === "localhost" || location.hostname === "127.0.0.1"
-      ? "ws://localhost:5000/ws"
-      : "wss://hostel-outpass-system.onrender.com/ws";
+  // Dynamic WebSocket URL based on current environment
+  const getWebSocketUrl = () => {
+    const port = window.location.port;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    
+    // Docker (port 8080) - use current host with ws/wss protocol
+    if (port === '8080') {
+      return `${protocol}//${window.location.hostname}:${port}/ws`;
+    }
+    
+    // Live Server (port 5500) - connect to local backend
+    if (port === '5500' || window.location.hostname === '127.0.0.1') {
+      return 'ws://localhost:5000/ws';
+    }
+    
+    // Production - use current host with appropriate protocol
+    return `${protocol}//${window.location.host}/ws`;
+  };
+
+  const WS_BASE = getWebSocketUrl();
 
   // Connect with role=warden and the selected studentId
   ws = new WebSocket(`${WS_BASE}?role=warden&studentId=${studentId}`);
