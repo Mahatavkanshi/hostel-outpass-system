@@ -332,6 +332,47 @@ func (a *Handler) deactivateStaff(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "staff deactivated"})
 }
 
+func (a *Handler) deleteStaff(c *gin.Context) {
+	tx, err := a.DB.Begin()
+	if err != nil {
+		respondErr(c, http.StatusInternalServerError, "could not start transaction")
+		return
+	}
+	defer tx.Rollback()
+
+	var roleValue string
+	if err := tx.QueryRow(`SELECT role FROM users WHERE id = ?`, c.Param("id")).Scan(&roleValue); err != nil {
+		respondErr(c, http.StatusNotFound, "staff user not found")
+		return
+	}
+	if roleValue != "warden" && roleValue != "gatekeeper" {
+		respondErr(c, http.StatusBadRequest, "only wardens and gatekeepers can be deleted")
+		return
+	}
+	now := nowString()
+	if err := mustExec(tx, `UPDATE registration_reviews SET reviewed_by = NULL, updated_at = ? WHERE reviewed_by = ?`, now, c.Param("id")); err != nil {
+		respondErr(c, http.StatusInternalServerError, "could not clear registration reviews")
+		return
+	}
+	if err := mustExec(tx, `UPDATE outpasses SET reviewed_by = NULL, updated_at = ? WHERE reviewed_by = ?`, now, c.Param("id")); err != nil {
+		respondErr(c, http.StatusInternalServerError, "could not clear outpass reviews")
+		return
+	}
+	if err := mustExec(tx, `UPDATE extension_requests SET reviewed_by = NULL, updated_at = ? WHERE reviewed_by = ?`, now, c.Param("id")); err != nil {
+		respondErr(c, http.StatusInternalServerError, "could not clear extension reviews")
+		return
+	}
+	if err := mustExec(tx, `DELETE FROM users WHERE id = ? AND role IN ('warden', 'gatekeeper')`, c.Param("id")); err != nil {
+		respondErr(c, http.StatusInternalServerError, "could not delete staff")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		respondErr(c, http.StatusInternalServerError, "staff delete failed")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "staff deleted"})
+}
+
 func (a *Handler) getSettings(c *gin.Context) {
 	settings, err := a.currentSettings()
 	if err != nil {

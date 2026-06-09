@@ -48,13 +48,20 @@ func testApp(t *testing.T) *Handler {
 	r := gin.New()
 	r.POST("/api/auth/signup", app.signup)
 	r.POST("/api/auth/login", app.login)
+	r.GET("/api/admin/staff", auth("admin"), app.listStaff)
+	r.POST("/api/admin/staff", auth("admin"), app.createStaff)
+	r.DELETE("/api/admin/staff/:id", auth("admin"), app.deleteStaff)
 	r.GET("/api/warden/registrations", auth("warden"), app.pendingRegistrations)
 	r.PUT("/api/warden/registrations/:id", auth("warden"), app.reviewRegistration)
+	r.GET("/api/warden/dashboard", auth("warden"), app.wardenDashboard)
 	r.POST("/api/student/outpasses", auth("student"), app.createOutpass)
 	r.GET("/api/warden/outpasses/pending", auth("warden"), app.pendingOutpasses)
 	r.PUT("/api/warden/outpasses/:id/review", auth("warden"), app.reviewOutpass)
 	r.PUT("/api/gatekeeper/outpasses/:id/checkout", auth("gatekeeper"), app.checkOutStudent)
 	r.POST("/api/student/outpasses/:id/return", auth("student"), app.studentMarkReturn)
+	r.GET("/api/chat/inbox", auth("warden"), app.wardenChatInbox)
+	r.GET("/api/chat/:studentId/messages", auth("student", "warden"), app.chatMessages)
+	r.PATCH("/api/chat/:studentId/read", auth("student", "warden"), app.markChatRead)
 	app.Router = r
 	t.Cleanup(func() { _ = db.Close() })
 	return app
@@ -184,6 +191,116 @@ func TestUnverifiedStudentCannotCreateOutpass(t *testing.T) {
 	})
 	if res.Code != http.StatusForbidden {
 		t.Fatalf("expected forbidden, got %d: %s", res.Code, res.Body.String())
+	}
+}
+
+func TestAdminCanCreateListAndHardDeleteStaff(t *testing.T) {
+	app := testApp(t)
+	adminToken, admin := loginAs(t, app, "admin@test.local", "admin123")
+	_, studentID := signupStudent(t, app)
+
+	res := perform(app, http.MethodPost, "/api/admin/staff", adminToken, map[string]string{
+		"name": "Warden Two", "email": "warden2@test.local", "password": "warden123", "role": "warden",
+	})
+	if res.Code != http.StatusCreated {
+		t.Fatalf("create staff failed: %d %s", res.Code, res.Body.String())
+	}
+	var created struct {
+		Staff UserDTO `json:"staff"`
+	}
+	_ = json.Unmarshal(res.Body.Bytes(), &created)
+	if created.Staff.ID == "" || created.Staff.Role != "warden" {
+		t.Fatalf("unexpected staff payload: %s", res.Body.String())
+	}
+
+	list := perform(app, http.MethodGet, "/api/admin/staff", adminToken, nil)
+	if list.Code != http.StatusOK {
+		t.Fatalf("list staff failed: %d %s", list.Code, list.Body.String())
+	}
+
+	if bad := perform(app, http.MethodDelete, "/api/admin/staff/"+admin.ID, adminToken, nil); bad.Code != http.StatusBadRequest {
+		t.Fatalf("expected admin delete to be blocked, got %d: %s", bad.Code, bad.Body.String())
+	}
+	if bad := perform(app, http.MethodDelete, "/api/admin/staff/"+studentID, adminToken, nil); bad.Code != http.StatusBadRequest {
+		t.Fatalf("expected student delete to be blocked, got %d: %s", bad.Code, bad.Body.String())
+	}
+
+	res = perform(app, http.MethodDelete, "/api/admin/staff/"+created.Staff.ID, adminToken, nil)
+	if res.Code != http.StatusOK {
+		t.Fatalf("delete staff failed: %d %s", res.Code, res.Body.String())
+	}
+	res = perform(app, http.MethodPost, "/api/auth/login", "", map[string]string{"email": "warden2@test.local", "password": "warden123"})
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("deleted staff should not login, got %d: %s", res.Code, res.Body.String())
+	}
+}
+
+func TestWardenDashboardReturnsAggregateStats(t *testing.T) {
+	app := testApp(t)
+	adminToken, _ := loginAs(t, app, "admin@test.local", "admin123")
+	studentToken, _ := signupStudent(t, app)
+	wardenToken := approveStudent(t, app, adminToken)
+
+	tomorrow := time.Now().UTC().Add(24 * time.Hour).Format("2006-01-02")
+	res := perform(app, http.MethodPost, "/api/student/outpasses", studentToken, map[string]string{
+		"reason": "Library", "placeOfVisit": "Central Library", "dateOfLeaving": tomorrow, "timeOut": "10:00", "timeIn": "12:00", "emergencyContact": "999",
+	})
+	if res.Code != http.StatusCreated {
+		t.Fatalf("outpass create failed: %d %s", res.Code, res.Body.String())
+	}
+	res = perform(app, http.MethodGet, "/api/warden/dashboard", wardenToken, nil)
+	if res.Code != http.StatusOK {
+		t.Fatalf("dashboard failed: %d %s", res.Code, res.Body.String())
+	}
+	var payload struct {
+		TotalStudents  int            `json:"totalStudents"`
+		PendingOutpass int            `json:"pendingOutpass"`
+		StatusCounts   map[string]int `json:"statusCounts"`
+	}
+	_ = json.Unmarshal(res.Body.Bytes(), &payload)
+	if payload.TotalStudents != 1 || payload.PendingOutpass != 1 || payload.StatusCounts["pending"] != 1 {
+		t.Fatalf("unexpected aggregate payload: %s", res.Body.String())
+	}
+}
+
+func TestChatMessagesPersistAndWardenInboxTracksUnread(t *testing.T) {
+	app := testApp(t)
+	adminToken, _ := loginAs(t, app, "admin@test.local", "admin123")
+	_, studentID := signupStudent(t, app)
+	wardenToken := approveStudent(t, app, adminToken)
+	_, _ = app.DB.Exec(`
+		INSERT INTO chat_messages (id, student_id, sender_id, sender_role, message, created_at)
+		VALUES (?, ?, ?, 'student', 'Hello warden', ?)
+	`, "chat1", studentID, studentID, nowString())
+
+	res := perform(app, http.MethodGet, "/api/chat/inbox", wardenToken, nil)
+	if res.Code != http.StatusOK {
+		t.Fatalf("inbox failed: %d %s", res.Code, res.Body.String())
+	}
+	var inbox struct {
+		Conversations []struct {
+			StudentID   string `json:"studentId"`
+			LastMessage string `json:"lastMessage"`
+			UnreadCount int    `json:"unreadCount"`
+		} `json:"conversations"`
+	}
+	_ = json.Unmarshal(res.Body.Bytes(), &inbox)
+	if len(inbox.Conversations) != 1 || inbox.Conversations[0].StudentID != studentID || inbox.Conversations[0].UnreadCount != 1 {
+		t.Fatalf("unexpected inbox payload: %s", res.Body.String())
+	}
+
+	res = perform(app, http.MethodGet, "/api/chat/"+studentID+"/messages", wardenToken, nil)
+	if res.Code != http.StatusOK {
+		t.Fatalf("messages failed: %d %s", res.Code, res.Body.String())
+	}
+	res = perform(app, http.MethodPatch, "/api/chat/"+studentID+"/read", wardenToken, nil)
+	if res.Code != http.StatusOK {
+		t.Fatalf("mark read failed: %d %s", res.Code, res.Body.String())
+	}
+	res = perform(app, http.MethodGet, "/api/chat/inbox", wardenToken, nil)
+	_ = json.Unmarshal(res.Body.Bytes(), &inbox)
+	if inbox.Conversations[0].UnreadCount != 0 {
+		t.Fatalf("expected unread to be cleared: %s", res.Body.String())
 	}
 }
 

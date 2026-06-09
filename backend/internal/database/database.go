@@ -138,6 +138,13 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 	created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS chat_reads (
+	student_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	last_read_at TEXT NOT NULL,
+	PRIMARY KEY(student_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS settings (
 	id INTEGER PRIMARY KEY CHECK(id = 1),
 	out_start_time TEXT NOT NULL,

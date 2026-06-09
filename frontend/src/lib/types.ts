@@ -7,6 +7,7 @@ export type User = {
   collegeId?: string;
   role: Role;
   isVerified: boolean;
+  isActive?: boolean;
   reviewStatus?: string;
 };
 
@@ -96,4 +97,31 @@ export type WardenStudent = {
   wardenOnline: boolean;
   lastMessage?: string;
   lastMessageAt?: string;
+};
+
+export type ChatConversation = {
+  studentId: string;
+  studentName: string;
+  collegeId: string;
+  email: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  unreadCount: number;
+  studentOnline: boolean;
+  wardenOnline: boolean;
+};
+
+export type WardenDashboardStats = {
+  date: string;
+  today?: Outpass[];
+  active?: Outpass[];
+  late?: Outpass[];
+  extensions?: Array<Record<string, unknown>>;
+  statusCounts?: Record<string, number>;
+  totalStudents: number;
+  pendingReviews: number;
+  pendingOutpass: number;
+  currentlyOut: number;
+  lateStudents: number;
+  todayRequests: number;
 };

@@ -575,6 +575,23 @@ func (a *Handler) wardenDashboard(c *gin.Context) {
 	todayOutpasses, _ := a.listOutpasses(`o.date_of_leaving = ?`, []any{today})
 	active, _ := a.listOutpasses(`o.status = 'checked_out'`, nil)
 	late, _ := a.listOutpasses(`o.late_status = 'late' AND o.status = 'checked_out'`, nil)
+	count := func(query string, args ...any) int {
+		var value int
+		_ = a.DB.QueryRow(query, args...).Scan(&value)
+		return value
+	}
+	statusCounts := gin.H{}
+	rowsStatus, _ := a.DB.Query(`SELECT status, COUNT(*) FROM outpasses GROUP BY status`)
+	if rowsStatus != nil {
+		defer rowsStatus.Close()
+		for rowsStatus.Next() {
+			var status string
+			var total int
+			if rowsStatus.Scan(&status, &total) == nil {
+				statusCounts[status] = total
+			}
+		}
+	}
 	rows, _ := a.DB.Query(`
 		SELECT e.id, e.status, e.requested_return_at, e.reason, e.created_at, u.name, u.college_id
 		FROM extension_requests e JOIN users u ON u.id = e.student_id
@@ -590,5 +607,18 @@ func (a *Handler) wardenDashboard(c *gin.Context) {
 			}
 		}
 	}
-	c.JSON(http.StatusOK, gin.H{"today": todayOutpasses, "active": active, "late": late, "extensions": exts})
+	c.JSON(http.StatusOK, gin.H{
+		"date":           today,
+		"today":          todayOutpasses,
+		"active":         active,
+		"late":           late,
+		"extensions":     exts,
+		"statusCounts":   statusCounts,
+		"totalStudents":  count(`SELECT COUNT(*) FROM users WHERE role = 'student' AND is_active = 1`),
+		"pendingReviews": count(`SELECT COUNT(*) FROM registration_reviews WHERE status = 'pending'`),
+		"pendingOutpass": count(`SELECT COUNT(*) FROM outpasses WHERE status = 'pending'`),
+		"currentlyOut":   len(active),
+		"lateStudents":   len(late),
+		"todayRequests":  len(todayOutpasses),
+	})
 }

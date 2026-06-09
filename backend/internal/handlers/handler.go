@@ -30,6 +30,7 @@ func (h *Handler) UpdateProfile(c *gin.Context)        { h.updateProfile(c) }
 func (h *Handler) ListStaff(c *gin.Context)            { h.listStaff(c) }
 func (h *Handler) CreateStaff(c *gin.Context)          { h.createStaff(c) }
 func (h *Handler) DeactivateStaff(c *gin.Context)      { h.deactivateStaff(c) }
+func (h *Handler) DeleteStaff(c *gin.Context)          { h.deleteStaff(c) }
 func (h *Handler) GetSettings(c *gin.Context)          { h.getSettings(c) }
 func (h *Handler) UpdateSettings(c *gin.Context)       { h.updateSettings(c) }
 func (h *Handler) PendingRegistrations(c *gin.Context) { h.pendingRegistrations(c) }
@@ -50,5 +51,7 @@ func (h *Handler) ReviewExtension(c *gin.Context)      { h.reviewExtension(c) }
 func (h *Handler) Notifications(c *gin.Context)        { h.notifications(c) }
 func (h *Handler) MarkNotificationRead(c *gin.Context) { h.markNotificationRead(c) }
 func (h *Handler) ChatMessages(c *gin.Context)         { h.chatMessages(c) }
+func (h *Handler) WardenChatInbox(c *gin.Context)      { h.wardenChatInbox(c) }
+func (h *Handler) MarkChatRead(c *gin.Context)         { h.markChatRead(c) }
 func (h *Handler) HandleChatWebSocket(c *gin.Context)  { h.handleChatWebSocket(c) }
 func (h *Handler) WardenStudents(c *gin.Context)       { h.wardenStudents(c) }

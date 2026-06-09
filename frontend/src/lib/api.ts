@@ -1,8 +1,6 @@
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "";
-export const WS_BASE =
-  process.env.NEXT_PUBLIC_WS_URL || "/ws";
-  
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+export const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || "/ws";
+
 export function apiUrl(path: string) {
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   return `${API_BASE}${path}`;

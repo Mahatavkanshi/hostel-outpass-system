@@ -48,6 +48,7 @@ func SetupRouter(cfg config.Config, db *sql.DB, h *handlers.Handler) *gin.Engine
 	admin.GET("/staff", h.ListStaff)
 	admin.POST("/staff", h.CreateStaff)
 	admin.PATCH("/staff/:id/deactivate", h.DeactivateStaff)
+	admin.DELETE("/staff/:id", h.DeleteStaff)
 	admin.GET("/settings", h.GetSettings)
 	admin.PUT("/settings", h.UpdateSettings)
 
@@ -75,7 +76,9 @@ func SetupRouter(cfg config.Config, db *sql.DB, h *handlers.Handler) *gin.Engine
 	gatekeeper.PUT("/extensions/:id", h.ReviewExtension)
 
 	chat := api.Group("/chat", auth("student", "warden"))
+	chat.GET("/inbox", auth("warden"), h.WardenChatInbox)
 	chat.GET("/:studentId/messages", h.ChatMessages)
+	chat.PATCH("/:studentId/read", h.MarkChatRead)
 
 	return r
 }
