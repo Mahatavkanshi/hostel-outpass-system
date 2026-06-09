@@ -18,6 +18,13 @@ type ToastContextValue = {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+function toastId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -28,13 +35,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<ToastContextValue>(
     () => ({
       showToast(toast) {
-        const id = crypto.randomUUID();
+        const id = toastId();
         setToasts((current) => [...current, { ...toast, id }].slice(-4));
         window.setTimeout(() => remove(id), 4500);
       },
       showError(error, title = "Something went wrong") {
         const body = error instanceof Error ? error.message : String(error);
-        const id = crypto.randomUUID();
+        const id = toastId();
         const toast: Toast = { id, kind: "error", title, body };
         setToasts((current) => [...current, toast].slice(-4));
         window.setTimeout(() => remove(id), 5500);

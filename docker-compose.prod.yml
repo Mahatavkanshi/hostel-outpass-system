@@ -1,10 +1,9 @@
 services:
   hostel-outpass-system:
-    image: ghcr.io/mahatavkanshi/hostel-outpass-system:latest
+    image: aithen.ved.yt/sajal/hostel-outpass-system:latest
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
-      - "${API_PORT:-5002}:5002"
     environment:
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Kolkata}
       DB_PATH: /app/data/hostel.db

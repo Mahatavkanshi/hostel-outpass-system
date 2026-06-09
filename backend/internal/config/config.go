@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -16,6 +17,7 @@ type Config struct {
 	AdminName          string
 	AdminEmail         string
 	AdminPassword      string
+	CORSAllowedOrigins []string
 	FaceThreshold      float64
 	DefaultHostelLat   float64
 	DefaultHostelLng   float64
@@ -38,6 +40,7 @@ func Load() Config {
 		AdminName:          env("ADMIN_NAME", "Hostel Admin"),
 		AdminEmail:         env("ADMIN_EMAIL", "admin@hostel.local"),
 		AdminPassword:      env("ADMIN_PASSWORD", "admin123"),
+		CORSAllowedOrigins: envList("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"),
 		FaceThreshold:      envFloat("FACE_THRESHOLD", 0.58),
 		DefaultHostelLat:   envFloat("HOSTEL_LAT", 28.6139),
 		DefaultHostelLng:   envFloat("HOSTEL_LNG", 77.2090),
@@ -52,6 +55,18 @@ func env(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func envList(key string, fallback string) []string {
+	raw := env(key, fallback)
+	items := strings.Split(raw, ",")
+	values := make([]string, 0, len(items))
+	for _, item := range items {
+		if value := strings.TrimSpace(item); value != "" {
+			values = append(values, value)
+		}
+	}
+	return values
 }
 
 func envFloat(key string, fallback float64) float64 {

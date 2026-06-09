@@ -19,11 +19,6 @@ RUN npm ci
 
 COPY frontend/ ./
 
-ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:5002
-ARG NEXT_PUBLIC_WS_URL=ws://localhost:5002/ws
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
-
 RUN npm run build
 RUN npm prune --omit=dev
 
@@ -34,12 +29,15 @@ WORKDIR /app
 ENV APP_TIMEZONE=Asia/Kolkata
 ENV DB_PATH=/app/data/hostel.db
 ENV FRONTEND_PORT=3000
+ENV NEXT_API_BASE_URL=http://127.0.0.1:5002
+ENV NEXT_INTERNAL_PORT=3001
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_WS_BASE_URL=http://127.0.0.1:5002
 ENV NODE_ENV=production
 ENV PORT=5002
 ENV STORAGE_DIR=/app/data/storage
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates nginx tzdata
 
 COPY --from=backend-build /out/api /usr/local/bin/api
 COPY --from=frontend-build /src/frontend/.next ./frontend/.next
@@ -51,6 +49,6 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 VOLUME ["/app/data"]
-EXPOSE 3000 5002
+EXPOSE 3000
 
 CMD ["docker-entrypoint.sh"]
