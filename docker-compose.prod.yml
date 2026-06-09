@@ -1,0 +1,21 @@
+services:
+  hostel-outpass-system:
+    image: ghcr.io/mahatavkanshi/hostel-outpass-system:latest
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+      - "${API_PORT:-5002}:5002"
+    environment:
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Kolkata}
+      DB_PATH: /app/data/hostel.db
+      STORAGE_DIR: /app/data/storage
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      ADMIN_NAME: ${ADMIN_NAME:-Hostel Admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL is required}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
+      GIN_MODE: release
+    volumes:
+      - hostel-data:/app/data
+
+volumes:
+  hostel-data:

@@ -1,0 +1,25 @@
+services:
+  hostel-outpass-system:
+    image: hostel-outpass-system:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:5002
+        NEXT_PUBLIC_WS_URL: ws://localhost:5002/ws
+    ports:
+      - "3000:3000"
+      - "5002:5002"
+    environment:
+      APP_TIMEZONE: Asia/Kolkata
+      DB_PATH: /app/data/hostel.db
+      STORAGE_DIR: /app/data/storage
+      JWT_SECRET: change-this-secret
+      ADMIN_NAME: Hostel Admin
+      ADMIN_EMAIL: admin@hostel.local
+      ADMIN_PASSWORD: admin123
+    volumes:
+      - hostel-data:/app/data
+
+volumes:
+  hostel-data:

@@ -1,0 +1,14 @@
+.git
+.github
+**/.env
+**/.env.*
+**/.next
+**/node_modules
+**/out
+**/*.db
+**/*.db-*
+**/storage
+**/tmp
+*.log
+Dockerfile
+docker-compose.yml
